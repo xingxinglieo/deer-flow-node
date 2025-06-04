@@ -1,0 +1,14 @@
+packages:
+  - 'packages/*'
+  
+# 确保只有 packages 目录下的项目被包含在 workspace 中
+prefer-workspace-packages: true
+
+# 自动安装 peer dependencies
+auto-install-peers: true
+
+# 严格的 peer dependencies 检查
+strict-peer-dependencies: false
+
+# 共享的依赖提升到根级别
+shamefully-hoist: true 

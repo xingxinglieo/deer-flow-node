@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "**/.next"
+  ],
+  "references": [
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/web"
+    }
+  ]
+} 
