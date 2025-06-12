@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import type { SimpleMCPServerMetadata } from "../mcp";
+import type { SimpleMCPServerMetadata } from '../mcp';
 
-import { resolveServiceURL } from "./resolve-service-url";
+import { resolveServiceURL } from './resolve-service-url';
 
 /**
  * MCP服务器元数据请求类型
@@ -21,11 +21,12 @@ export interface MCPServerMetadataRequest {
  * MCP服务器元数据响应类型
  */
 export interface MCPServerMetadataResponse {
-  transport: 'stdio' | 'sse';
-  command?: string;
-  args?: string[];
+  // transport: 'stdio' | 'sse';
+  transport: 'sse';
+  // command?: string;
+  // args?: string[];
   url?: string;
-  env?: Record<string, string>;
+  // env?: Record<string, string>;
   tools: any[];
 }
 
@@ -33,25 +34,26 @@ export interface MCPServerMetadataResponse {
  * 查询MCP服务器元数据
  * 对应Python版本的queryMCPServerMetadata函数
  */
-export async function queryMCPServerMetadata(config: SimpleMCPServerMetadata): Promise<MCPServerMetadataResponse> {
+export async function queryMCPServerMetadata(config: SimpleMCPServerMetadata) {
   const requestBody: MCPServerMetadataRequest = {
-    transport: 'command' in config ? 'stdio' : 'sse',
-    ...(('command' in config) ? {
-      command: config.command,
-      args: config.args,
-      env: config.env,
-    } : {
-      url: config.url,
-      env: config.env,
-    })
+    transport: 'sse',
+    // 'command' in config ? 'stdio' :
+    // ...(('command' in config) ? {
+    //   command: config.command,
+    // args: config.args,
+    // env: config.env,
+    // } : {
+    url: config.url
+    // env: config.env,
+    // })
   };
 
-  const response = await fetch(resolveServiceURL("mcp/server/metadata"), {
-    method: "POST",
+  const response = await fetch(resolveServiceURL('mcp/server/metadata'), {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
@@ -71,25 +73,28 @@ export async function callMCPTool(
   toolArgs: Record<string, unknown> = {}
 ): Promise<any> {
   const requestBody = {
-    transport: 'command' in config ? 'stdio' : 'sse',
-    ...(('command' in config) ? {
-      command: config.command,
-      args: config.args,
-      env: config.env,
-    } : {
-      url: config.url,
-      env: config.env,
-    }),
+    transport: 'sse',
+    // 'command' in config ? 'stdio' :
+    // ...('command' in config
+    // ? {
+    // command: config.command,
+    // args: config.args,
+    // env: config.env
+    // }
+    // : {
+    url: config.url,
+    // env: config.env
+    // }),
     toolName,
     toolArgs
   };
 
-  const response = await fetch(resolveServiceURL("mcp/tool/call"), {
-    method: "POST",
+  const response = await fetch(resolveServiceURL('mcp/tool/call'), {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {

@@ -108,6 +108,7 @@ async function* streamWorkflowGenerator({
       max_search_results: max_search_results || 10,
       mcp_settings: mcp_settings || {}
     },
+    recursionLimit: 500,
     version: 'v2',
     subgraphs: true
   });

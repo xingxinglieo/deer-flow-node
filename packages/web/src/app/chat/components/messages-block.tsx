@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { fastForwardReplay } from "~/core/api";
+// import { fastForwardReplay } from "~/core/api";
 import { useReplayMetadata } from "~/core/api/hooks";
 import type { Option, Resource } from "~/core/messages";
 import { useReplay } from "~/core/replay";
@@ -81,7 +81,7 @@ export function MessagesBlock({ className }: { className?: string }) {
   const [fastForwarding, setFastForwarding] = useState(false);
   const handleFastForwardReplay = useCallback(() => {
     setFastForwarding(!fastForwarding);
-    fastForwardReplay(!fastForwarding);
+    // fastForwardReplay(!fastForwarding);
   }, [fastForwarding]);
   return (
     <div className={cn("flex h-full flex-col", className)}>

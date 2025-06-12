@@ -17,27 +17,25 @@ export interface GenericMCPServerMetadata<T extends string> {
   updatedAt: number;
 }
 
-export interface StdioMCPServerMetadata
-  extends GenericMCPServerMetadata<"stdio"> {
-  transport: "stdio";
-  command: string;
-  args?: string[];
-}
-export type SimpleStdioMCPServerMetadata = Omit<
-  StdioMCPServerMetadata,
-  "enabled" | "tools" | "createdAt" | "updatedAt"
->;
+// export interface StdioMCPServerMetadata
+//   extends GenericMCPServerMetadata<"stdio"> {
+//   transport: "stdio";
+//   command: string;
+//   args?: string[];
+// }
+// export type SimpleStdioMCPServerMetadata = Omit<
+//   StdioMCPServerMetadata,
+//   "enabled" | "tools" | "createdAt" | "updatedAt"
+// >;
 
-export interface SSEMCPServerMetadata extends GenericMCPServerMetadata<"sse"> {
-  transport: "sse";
+export interface SSEMCPServerMetadata extends GenericMCPServerMetadata<'sse'> {
+  transport: 'sse';
   url: string;
 }
-export type SimpleSSEMCPServerMetadata = Omit<
-  SSEMCPServerMetadata,
-  "enabled" | "tools" | "createdAt" | "updatedAt"
->;
+export type SimpleSSEMCPServerMetadata = Omit<SSEMCPServerMetadata, 'enabled' | 'tools' | 'createdAt' | 'updatedAt'>;
 
-export type MCPServerMetadata = StdioMCPServerMetadata | SSEMCPServerMetadata;
+export type MCPServerMetadata = SSEMCPServerMetadata;
+// | StdioMCPServerMetadata
 export type SimpleMCPServerMetadata =
-  | SimpleStdioMCPServerMetadata
-  | SimpleSSEMCPServerMetadata;
+  // | SimpleStdioMCPServerMetadata
+  SimpleSSEMCPServerMetadata;

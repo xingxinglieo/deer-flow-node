@@ -161,7 +161,7 @@ const markdownExtension = Markdown.configure({
 
 const globalDragHandle = GlobalDragHandle.configure({});
 
-export const defaultExtensions = [
+export const defaultExtensions: any[] = [
   starterKit,
   placeholder,
   tiptapLink,

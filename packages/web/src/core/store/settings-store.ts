@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { create } from "zustand";
+import { create } from 'zustand';
 
-import type { MCPServerMetadata, SimpleMCPServerMetadata } from "../mcp";
+import type { MCPServerMetadata, SimpleMCPServerMetadata } from '../mcp';
 
-const SETTINGS_KEY = "deerflow.settings";
+const SETTINGS_KEY = 'deerflow.settings';
 
 const DEFAULT_SETTINGS: SettingsState = {
   general: {
@@ -13,11 +13,11 @@ const DEFAULT_SETTINGS: SettingsState = {
     enable_background_investigation: false,
     max_plan_iterations: 1,
     max_step_num: 3,
-    max_search_results: 3,
+    max_search_results: 3
   },
   mcp: {
-    servers: [],
-  },
+    servers: []
+  }
 };
 
 export type SettingsState = {
@@ -34,7 +34,7 @@ export type SettingsState = {
 };
 
 export const useSettingsStore = create<SettingsState>(() => ({
-  ...DEFAULT_SETTINGS,
+  ...DEFAULT_SETTINGS
 }));
 
 export const useSettings = (key: keyof SettingsState) => {
@@ -46,7 +46,7 @@ export const changeSettings = (settings: SettingsState) => {
 };
 
 export const loadSettings = () => {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return;
   }
   const json = localStorage.getItem(SETTINGS_KEY);
@@ -54,8 +54,8 @@ export const loadSettings = () => {
     const settings = JSON.parse(json);
     for (const key in DEFAULT_SETTINGS.general) {
       if (!(key in settings.general)) {
-        settings.general[key as keyof SettingsState["general"]] =
-          DEFAULT_SETTINGS.general[key as keyof SettingsState["general"]];
+        settings.general[key as keyof SettingsState['general']] =
+          DEFAULT_SETTINGS.general[key as keyof SettingsState['general']];
       }
     }
 
@@ -92,36 +92,36 @@ export const getChatStreamSettings = () => {
       servers: mcpServers.reduce((acc, cur) => {
         const { transport, env } = cur;
         let server: SimpleMCPServerMetadata;
-        if (transport === "stdio") {
-          server = {
-            name: cur.name,
-            transport,
-            env,
-            command: cur.command,
-            args: cur.args,
-          };
-        } else {
-          server = {
-            name: cur.name,
-            transport,
-            env,
-            url: cur.url,
-          };
-        }
+        // if (transport === "stdio") {
+        //   server = {
+        //     name: cur.name,
+        //     transport,
+        //     env,
+        //     command: cur.command,
+        //     args: cur.args,
+        //   };
+        // } else {
+        server = {
+          name: cur.name,
+          transport,
+          // env,
+          url: cur.url
+        };
+        // }
         return {
           ...acc,
           [cur.name]: {
             ...server,
             enabled_tools: cur.tools.map((tool) => tool.name),
-            add_to_agents: ["researcher"],
-          },
+            add_to_agents: ['researcher']
+          }
         };
-      }, {}),
+      }, {})
     };
   }
   return {
     ...general,
-    mcp_settings,
+    mcp_settings
   };
 };
 
@@ -129,8 +129,8 @@ export function setEnableBackgroundInvestigation(value: boolean) {
   useSettingsStore.setState((state) => ({
     general: {
       ...state.general,
-      enable_background_investigation: value,
-    },
+      enable_background_investigation: value
+    }
   }));
   saveSettings();
 }

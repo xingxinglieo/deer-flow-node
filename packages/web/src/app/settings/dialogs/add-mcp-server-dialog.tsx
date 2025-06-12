@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Loader2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
-import { Button } from "~/components/ui/button";
+import { Button } from '~/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,26 +12,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog";
-import { Textarea } from "~/components/ui/textarea";
-import { queryMCPServerMetadata } from "~/core/api";
+  DialogTrigger
+} from '~/components/ui/dialog';
+import { Textarea } from '~/components/ui/textarea';
+import { queryMCPServerMetadata } from '~/core/api';
 import {
   MCPConfigSchema,
   type MCPServerMetadata,
   type SimpleMCPServerMetadata,
   type SimpleSSEMCPServerMetadata,
-  type SimpleStdioMCPServerMetadata,
-} from "~/core/mcp";
+  // type SimpleStdioMCPServerMetadata
+} from '~/core/mcp';
 
-export function AddMCPServerDialog({
-  onAdd,
-}: {
-  onAdd?: (servers: MCPServerMetadata[]) => void;
-}) {
+export function AddMCPServerDialog({ onAdd }: { onAdd?: (servers: MCPServerMetadata[]) => void }) {
   const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [validationError, setValidationError] = useState<string | null>("");
+  const [input, setInput] = useState('');
+  const [validationError, setValidationError] = useState<string | null>('');
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const handleChange = useCallback((value: string) => {
@@ -43,34 +39,33 @@ export function AddMCPServerDialog({
     setValidationError(null);
     try {
       const parsed = JSON.parse(value);
-      if (!("mcpServers" in parsed)) {
-        setValidationError("Missing `mcpServers` in JSON");
+      if (!('mcpServers' in parsed)) {
+        setValidationError('Missing `mcpServers` in JSON');
         return;
       }
     } catch {
-      setValidationError("Invalid JSON");
+      setValidationError('Invalid JSON');
       return;
     }
     const result = MCPConfigSchema.safeParse(JSON.parse(value));
     if (!result.success) {
       if (result.error.errors[0]) {
         const error = result.error.errors[0];
-        if (error.code === "invalid_union") {
+        if (error.code === 'invalid_union') {
           if (error.unionErrors[0]?.errors[0]) {
             setValidationError(error.unionErrors[0].errors[0].message);
             return;
           }
         }
       }
-      const errorMessage =
-        result.error.errors[0]?.message ?? "Validation failed";
+      const errorMessage = result.error.errors[0]?.message ?? 'Validation failed';
       setValidationError(errorMessage);
       return;
     }
 
     const keys = Object.keys(result.data.mcpServers);
     if (keys.length === 0) {
-      setValidationError("Missing server name in `mcpServers`");
+      setValidationError('Missing server name in `mcpServers`');
       return;
     }
   }, []);
@@ -80,20 +75,21 @@ export function AddMCPServerDialog({
     const addingServers: SimpleMCPServerMetadata[] = [];
     for (const [key, _server] of Object.entries(config.mcpServers)) {
       const server = _server as any;
-      if ("command" in server) {
-        const metadata: SimpleStdioMCPServerMetadata = {
-          transport: "stdio",
-          name: key,
-          command: server.command,
-          args: server.args,
-          env: server.env,
-        };
-        addingServers.push(metadata);
-      } else if ("url" in server) {
+      // if ('command' in server) {
+      //   const metadata: SimpleStdioMCPServerMetadata = {
+      //     transport: 'stdio',
+      //     name: key,
+      //     command: server.command,
+      //     args: server.args,
+      //     env: server.env
+      //   };
+      //   addingServers.push(metadata);
+      // } else 
+      if ('url' in server) {
         const metadata: SimpleSSEMCPServerMetadata = {
-          transport: "sse",
+          transport: 'sse',
           name: key,
-          url: server.url,
+          url: server.url
         };
         addingServers.push(metadata);
       }
@@ -107,12 +103,16 @@ export function AddMCPServerDialog({
       for (const server of addingServers) {
         processingServer = server.name;
         const metadata = await queryMCPServerMetadata(server);
-        results.push({ ...metadata, name: server.name, enabled: true });
+        results.push({
+          ...metadata,
+          name: server.name,
+          enabled: true
+        });
       }
       if (results.length > 0) {
         onAdd?.(results);
       }
-      setInput("");
+      setInput('');
       setOpen(false);
     } catch (e) {
       console.error(e);
@@ -123,7 +123,10 @@ export function AddMCPServerDialog({
   }, [input, onAdd]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+    >
       <DialogTrigger asChild>
         <Button size="sm">Add Servers</Button>
       </DialogTrigger>
@@ -150,11 +153,12 @@ export function AddMCPServerDialog({
 
         <DialogFooter>
           <div className="flex h-10 w-full items-center justify-between gap-2">
-            <div className="text-destructive flex-grow overflow-hidden text-sm">
-              {validationError ?? error}
-            </div>
+            <div className="text-destructive flex-grow overflow-hidden text-sm">{validationError ?? error}</div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
