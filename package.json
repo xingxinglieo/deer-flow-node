@@ -9,7 +9,7 @@
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter server dev",
     "dev:web": "pnpm --filter web dev",
-    "start": "pnpm -r start",
+    "start": "git pull && pnpm -r start",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
@@ -42,5 +42,5 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@10.11.0"
+  "packageManager": "pnpm@8.9.2"
 }
