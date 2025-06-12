@@ -1,6 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import websocket from '@fastify/websocket';
 import { chatRoutes } from '../routes/chat';
+import { mcpRoutes } from '../routes/mcp/index';
+
+// import { socketRoutes } from '../routes/mcp/socket';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { errorHandler } from './error';
 
@@ -14,13 +18,15 @@ fastify.setSerializerCompiler(serializerCompiler);
 
 // 注册错误处理器
 fastify.register(errorHandler);
+// 注册 WebSocket 插件
+fastify.register(websocket);
 // 注册 CORS 插件
 fastify.register(cors, {
   origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: '*',
-  exposedHeaders: '*',
+  exposedHeaders: '*'
   // origin: [
   //   'https://hoppscotch.io',
   //   process.env.CORS_ORIGIN || 'http://localhost:3000',
@@ -29,6 +35,12 @@ fastify.register(cors, {
 
 // 注册聊天路由
 fastify.register(chatRoutes);
+
+// 注册MCP路由
+fastify.register(mcpRoutes);
+
+// 注册Socket.IO和WebSocket
+// fastify.register(socketRoutes);
 
 // 健康检查端点
 fastify.get('/health', async () => {
@@ -59,4 +71,4 @@ const start = async () => {
   }
 };
 
-start(); 
+start();

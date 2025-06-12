@@ -16,20 +16,26 @@ export function getLLMByType(llmType: LLMType): ChatOpenAI {
   if (_llmCache.has(llmType)) {
     return _llmCache.get(llmType)!;
   }
-  
+
   // Create a basic ChatOpenAI instance
   // In production, this would load from configuration
-  const  llm = new ChatOpenAI({
+  const llm = new ChatOpenAI({
     model: process.env.OPENAI_MODEL || '',
     apiKey: process.env.OPENAI_API_KEY || '',
     configuration: {
-      
-      baseURL: process.env.OPENAI_BASE_URL || '',
+      baseURL: process.env.OPENAI_BASE_URL || ''
     },
+    modelKwargs: {
+      enable_thinking: false,
+      enable_search: true
+      // search_options: {
+      //   forced_search: true
+      // }
+    }
   });
-  
+
   // Cache the instance
   _llmCache.set(llmType, llm);
-  
+
   return llm;
-} 
+}

@@ -41,7 +41,6 @@ export async function* fetchStream(
       buffer = buffer.slice(index + 2);
       const event = parseEvent(chunk);
       if (event) {
-        console.log(event);
         yield event;
       }
     }

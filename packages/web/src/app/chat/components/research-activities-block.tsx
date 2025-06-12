@@ -1,67 +1,54 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { PythonOutlined } from "@ant-design/icons";
-import { motion } from "framer-motion";
-import { LRUCache } from "lru-cache";
-import { BookOpenText, FileText, PencilRuler, Search } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useMemo } from "react";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { PythonOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import { LRUCache } from 'lru-cache';
+import { BookOpenText, FileText, PencilRuler, Search } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useMemo } from 'react';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { FavIcon } from "~/components/deer-flow/fav-icon";
-import Image from "~/components/deer-flow/image";
-import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
-import { Markdown } from "~/components/deer-flow/markdown";
-import { RainbowText } from "~/components/deer-flow/rainbow-text";
-import { Tooltip } from "~/components/deer-flow/tooltip";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "~/components/ui/accordion";
-import { Skeleton } from "~/components/ui/skeleton";
-import { findMCPTool } from "~/core/mcp";
-import type { ToolCallRuntime } from "~/core/messages";
-import { useMessage, useStore } from "~/core/store";
-import { parseJSON } from "~/core/utils";
-import { cn } from "~/lib/utils";
+import { FavIcon } from '~/components/deer-flow/fav-icon';
+import Image from '~/components/deer-flow/image';
+import { LoadingAnimation } from '~/components/deer-flow/loading-animation';
+import { Markdown } from '~/components/deer-flow/markdown';
+import { RainbowText } from '~/components/deer-flow/rainbow-text';
+import { Tooltip } from '~/components/deer-flow/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
+import { Skeleton } from '~/components/ui/skeleton';
+import { findMCPTool } from '~/core/mcp';
+import type { ToolCallRuntime } from '~/core/messages';
+import { useMessage, useStore } from '~/core/store';
+import { parseJSON } from '~/core/utils';
+import { cn } from '~/lib/utils';
 
-export function ResearchActivitiesBlock({
-  className,
-  researchId,
-}: {
-  className?: string;
-  researchId: string;
-}) {
-  const activityIds = useStore((state) =>
-    state.researchActivityIds.get(researchId),
-  )!;
+export function ResearchActivitiesBlock({ className, researchId }: { className?: string; researchId: string }) {
+  const activityIds = useStore((state) => state.researchActivityIds.get(researchId))!;
   const ongoing = useStore((state) => state.ongoingResearchId === researchId);
   return (
     <>
-      <ul className={cn("flex flex-col py-4", className)}>
+      <ul className={cn('flex flex-col py-4', className)}>
         {activityIds.map(
           (activityId, i) =>
             i !== 0 && (
               <motion.li
                 key={activityId}
-                style={{ transition: "all 0.4s ease-out" }}
+                style={{ transition: 'all 0.4s ease-out' }}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
                   duration: 0.4,
-                  ease: "easeOut",
+                  ease: 'easeOut'
                 }}
               >
                 <ActivityMessage messageId={activityId} />
                 <ActivityListItem messageId={activityId} />
                 {i !== activityIds.length - 1 && <hr className="my-8" />}
               </motion.li>
-            ),
+            )
         )}
       </ul>
       {ongoing && <LoadingAnimation className="mx-4 my-12" />}
@@ -72,10 +59,13 @@ export function ResearchActivitiesBlock({
 function ActivityMessage({ messageId }: { messageId: string }) {
   const message = useMessage(messageId);
   if (message?.agent && message.content) {
-    if (message.agent !== "reporter" && message.agent !== "planner") {
+    if (message.agent !== 'reporter' && message.agent !== 'planner') {
       return (
         <div className="px-4 py-2">
-          <Markdown animated checkLinkCredibility>
+          <Markdown
+            animated
+            checkLinkCredibility
+          >
             {message.content}
           </Markdown>
         </div>
@@ -88,18 +78,44 @@ function ActivityMessage({ messageId }: { messageId: string }) {
 function ActivityListItem({ messageId }: { messageId: string }) {
   const message = useMessage(messageId);
   if (message) {
-    if (!message.isStreaming && message.toolCalls?.length) {
-      for (const toolCall of message.toolCalls) {
-        if (toolCall.name === "web_search") {
-          return <WebSearchToolCall key={toolCall.id} toolCall={toolCall} />;
-        } else if (toolCall.name === "crawl_tool") {
-          return <CrawlToolCall key={toolCall.id} toolCall={toolCall} />;
-        } else if (toolCall.name === "python_repl_tool") {
-          return <PythonToolCall key={toolCall.id} toolCall={toolCall} />;
-        } else if (toolCall.name === "local_search_tool") {
-          return <RetrieverToolCall key={toolCall.id} toolCall={toolCall} />;
+    if (!message.isStreaming && message.tool_calls?.length) {
+      console.log(message, message.tool_calls);
+      for (const toolCall of message.tool_calls) {
+        if (toolCall.name === 'web_search_tool') {
+          return (
+            <WebSearchToolCall
+              key={toolCall.id}
+              toolCall={toolCall}
+            />
+          );
+        } else if (toolCall.name === 'crawl_tool') {
+          return (
+            <CrawlToolCall
+              key={toolCall.id}
+              toolCall={toolCall}
+            />
+          );
+        } else if (toolCall.name === 'execute_js_code') {
+          return (
+            <PythonToolCall
+              key={toolCall.id}
+              toolCall={toolCall}
+            />
+          );
+        } else if (toolCall.name === 'local_search_tool') {
+          return (
+            <RetrieverToolCall
+              key={toolCall.id}
+              toolCall={toolCall}
+            />
+          );
         } else {
-          return <MCPToolCall key={toolCall.id} toolCall={toolCall} />;
+          return (
+            <MCPToolCall
+              key={toolCall.id}
+              toolCall={toolCall}
+            />
+          );
         }
       }
     }
@@ -110,18 +126,19 @@ function ActivityListItem({ messageId }: { messageId: string }) {
 const __pageCache = new LRUCache<string, string>({ max: 100 });
 type SearchResult =
   | {
-      type: "page";
+      type: 'page';
       title: string;
       url: string;
       content: string;
     }
   | {
-      type: "image";
+      type: 'image';
       image_url: string;
       image_description: string;
     };
 
 function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
+  console.log('WebSearchToolCall', toolCall);
   const searching = useMemo(() => {
     return toolCall.result === undefined;
   }, [toolCall.result]);
@@ -134,7 +151,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
     }
     if (Array.isArray(results)) {
       results.forEach((result) => {
-        if (result.type === "page") {
+        if (result.type === 'page') {
           __pageCache.set(result.url, result.title);
         }
       });
@@ -143,14 +160,8 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
     }
     return results;
   }, [toolCall.result]);
-  const pageResults = useMemo(
-    () => searchResults?.filter((result) => result.type === "page"),
-    [searchResults],
-  );
-  const imageResults = useMemo(
-    () => searchResults?.filter((result) => result.type === "image"),
-    [searchResults],
-  );
+  const pageResults = useMemo(() => searchResults?.filter((result) => result.type === 'page'), [searchResults]);
+  const imageResults = useMemo(() => searchResults?.filter((result) => result.type === 'image'), [searchResults]);
   return (
     <section className="mt-4 pl-4">
       <div className="font-medium italic">
@@ -158,7 +169,10 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
           className="flex items-center"
           animated={searchResults === undefined}
         >
-          <Search size={16} className={"mr-2"} />
+          <Search
+            size={16}
+            className={'mr-2'}
+          />
           <span>Searching for&nbsp;</span>
           <span className="max-w-[500px] overflow-hidden text-ellipsis whitespace-nowrap">
             {(toolCall.args as { query: string }).query}
@@ -181,7 +195,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                 </li>
               ))}
             {pageResults
-              .filter((result) => result.type === "page")
+              .filter((result) => result.type === 'page')
               .map((searchResult, i) => (
                 <motion.li
                   key={`search-result-${i}`}
@@ -191,7 +205,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                   transition={{
                     duration: 0.2,
                     delay: i * 0.1,
-                    ease: "easeOut",
+                    ease: 'easeOut'
                   }}
                 >
                   <FavIcon
@@ -199,7 +213,10 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                     url={searchResult.url}
                     title={searchResult.title}
                   />
-                  <a href={searchResult.url} target="_blank">
+                  <a
+                    href={searchResult.url}
+                    target="_blank"
+                  >
                     {searchResult.title}
                   </a>
                 </motion.li>
@@ -212,7 +229,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                 transition={{
                   duration: 0.2,
                   delay: i * 0.1,
-                  ease: "easeOut",
+                  ease: 'easeOut'
                 }}
               >
                 <a
@@ -238,10 +255,7 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
 }
 
 function CrawlToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
-  const url = useMemo(
-    () => (toolCall.args as { url: string }).url,
-    [toolCall.args],
-  );
+  const url = useMemo(() => (toolCall.args as { url: string }).url, [toolCall.args]);
   const title = useMemo(() => __pageCache.get(url), [url]);
   return (
     <section className="mt-4 pl-4">
@@ -250,7 +264,10 @@ function CrawlToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
           className="flex items-center text-base font-medium italic"
           animated={toolCall.result === undefined}
         >
-          <BookOpenText size={16} className={"mr-2"} />
+          <BookOpenText
+            size={16}
+            className={'mr-2'}
+          />
           <span>Reading</span>
         </RainbowText>
       </div>
@@ -261,10 +278,14 @@ function CrawlToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{
             duration: 0.2,
-            ease: "easeOut",
+            ease: 'easeOut'
           }}
         >
-          <FavIcon className="mt-1" url={url} title={title} />
+          <FavIcon
+            className="mt-1"
+            url={url}
+            title={title}
+          />
           <a
             className="h-full flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
             href={url}
@@ -282,16 +303,20 @@ function RetrieverToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   const searching = useMemo(() => {
     return toolCall.result === undefined;
   }, [toolCall.result]);
-  const documents = useMemo<
-    Array<{ id: string; title: string; content: string }>
-  >(() => {
+  const documents = useMemo<Array<{ id: string; title: string; content: string }>>(() => {
     return toolCall.result ? parseJSON(toolCall.result, []) : [];
   }, [toolCall.result]);
   return (
     <section className="mt-4 pl-4">
       <div className="font-medium italic">
-        <RainbowText className="flex items-center" animated={searching}>
-          <Search size={16} className={"mr-2"} />
+        <RainbowText
+          className="flex items-center"
+          animated={searching}
+        >
+          <Search
+            size={16}
+            className={'mr-2'}
+          />
           <span>Retrieving documents from RAG&nbsp;</span>
           <span className="max-w-[500px] overflow-hidden text-ellipsis whitespace-nowrap">
             {(toolCall.args as { keywords: string }).keywords}
@@ -322,7 +347,7 @@ function RetrieverToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                 transition={{
                   duration: 0.2,
                   delay: i * 0.1,
-                  ease: "easeOut",
+                  ease: 'easeOut'
                 }}
               >
                 <FileText size={32} />
@@ -344,7 +369,7 @@ function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   return (
     <section className="mt-4 pl-4">
       <div className="flex items-center">
-        <PythonOutlined className={"mr-2"} />
+        <PythonOutlined className={'mr-2'} />
         <RainbowText
           className="text-base font-medium italic"
           animated={toolCall.result === undefined}
@@ -356,14 +381,14 @@ function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
         <div className="bg-accent mt-2 max-h-[400px] max-w-[calc(100%-120px)] overflow-y-auto rounded-md p-2 text-sm">
           <SyntaxHighlighter
             language="python"
-            style={resolvedTheme === "dark" ? dark : docco}
+            style={resolvedTheme === 'dark' ? dark : docco}
             customStyle={{
-              background: "transparent",
-              border: "none",
-              boxShadow: "none",
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none'
             }}
           >
-            {code?.trim() ?? ""}
+            {code?.trim() ?? ''}
           </SyntaxHighlighter>
         </div>
       </div>
@@ -374,13 +399,10 @@ function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
 
 function PythonToolCallResult({ result }: { result: string }) {
   const { resolvedTheme } = useTheme();
-  const hasError = useMemo(
-    () => result.includes("Error executing code:\n"),
-    [result],
-  );
+  const hasError = useMemo(() => result.includes('Error executing code:\n'), [result]);
   const error = useMemo(() => {
     if (hasError) {
-      const parts = result.split("```\nError: ");
+      const parts = result.split('```\nError: ');
       if (parts.length > 1) {
         return parts[1]!.trim();
       }
@@ -389,7 +411,7 @@ function PythonToolCallResult({ result }: { result: string }) {
   }, [result, hasError]);
   const stdout = useMemo(() => {
     if (!hasError) {
-      const parts = result.split("```\nStdout: ");
+      const parts = result.split('```\nStdout: ');
       if (parts.length > 1) {
         return parts[1]!.trim();
       }
@@ -399,20 +421,20 @@ function PythonToolCallResult({ result }: { result: string }) {
   return (
     <>
       <div className="mt-4 font-medium italic">
-        {hasError ? "Error when executing the above code" : "Execution output"}
+        {hasError ? 'Error when executing the above code' : 'Execution output'}
       </div>
       <div className="bg-accent mt-2 max-h-[400px] max-w-[calc(100%-120px)] overflow-y-auto rounded-md p-2 text-sm">
         <SyntaxHighlighter
           language="plaintext"
-          style={resolvedTheme === "dark" ? dark : docco}
+          style={resolvedTheme === 'dark' ? dark : docco}
           customStyle={{
-            color: hasError ? "red" : "inherit",
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
+            color: hasError ? 'red' : 'inherit',
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none'
           }}
         >
-          {error ?? stdout ?? "(empty)"}
+          {error ?? stdout ?? '(empty)'}
         </SyntaxHighlighter>
       </div>
     </>
@@ -425,17 +447,24 @@ function MCPToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   return (
     <section className="mt-4 pl-4">
       <div className="w-fit overflow-y-auto rounded-md py-0">
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full"
+        >
           <AccordionItem value="item-1">
             <AccordionTrigger>
               <Tooltip title={tool?.description}>
                 <div className="flex items-center font-medium italic">
-                  <PencilRuler size={16} className={"mr-2"} />
+                  <PencilRuler
+                    size={16}
+                    className={'mr-2'}
+                  />
                   <RainbowText
                     className="pr-0.5 text-base font-medium italic"
                     animated={toolCall.result === undefined}
                   >
-                    Running {toolCall.name ? toolCall.name + "()" : "MCP tool"}
+                    Running {toolCall.name ? toolCall.name + '()' : 'MCP tool'}
                   </RainbowText>
                 </div>
               </Tooltip>
@@ -445,11 +474,11 @@ function MCPToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                 <div className="bg-accent max-h-[400px] max-w-[560px] overflow-y-auto rounded-md text-sm">
                   <SyntaxHighlighter
                     language="json"
-                    style={resolvedTheme === "dark" ? dark : docco}
+                    style={resolvedTheme === 'dark' ? dark : docco}
                     customStyle={{
-                      background: "transparent",
-                      border: "none",
-                      boxShadow: "none",
+                      background: 'transparent',
+                      border: 'none',
+                      boxShadow: 'none'
                     }}
                   >
                     {toolCall.result.trim()}

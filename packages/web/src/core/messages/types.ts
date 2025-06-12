@@ -14,7 +14,7 @@ export interface Message {
     | "reporter"
     | "podcast";
   role: MessageRole;
-  is_streaming?: boolean;
+  isStreaming?: boolean;
   content: string;
   content_chunks: string[];
   tool_calls?: ToolCallRuntime[];

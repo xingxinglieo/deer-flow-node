@@ -1,39 +1,9 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
+import { MemorySaver } from "@langchain/langgraph";
+import { buildBaseGraph } from "./nodes";
 
-import { StateGraph, MemorySaver, START, END } from "@langchain/langgraph";
 
-import { StateAnnotation } from "./types";
-import {
-  plannerNode,
-  reporterNode,
-} from "./nodes";
-
-function buildBaseGraph() {
-  /**
-   * 构建并返回包含所有节点和边的基础状态图
-   */
-  const builder = new StateGraph(StateAnnotation);
-
-  // 添加所有节点
-  builder
-    // .addNode("coordinator", coordinatorNode)
-    // builder.addNode("background_investigator", backgroundInvestigationNode);
-    .addNode("planner", plannerNode, {
-      ends: ["reporter"],
-    })
-    .addNode("reporter", reporterNode)
-    // builder.addNode("research_team", researchTeamNode);
-    // builder.addNode("researcher", researcherNode);
-    // builder.addNode("coder", coderNode);
-    // builder.addNode("human_feedback", humanFeedbackNode);
-    // 设置入口点
-    .addEdge(START, "planner")
-    // 设置结束点
-    .addEdge("reporter", END);
-
-  return builder;
-}
 
 export function buildGraphWithMemory() {
   /**

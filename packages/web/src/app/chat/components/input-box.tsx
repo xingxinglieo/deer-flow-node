@@ -41,7 +41,7 @@ export function InputBox({
   onRemoveFeedback?: () => void;
 }) {
   const backgroundInvestigation = useSettingsStore(
-    (state) => state.general.enableBackgroundInvestigation,
+    (state) => state.general.enable_background_investigation,
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<MessageInputRef>(null);

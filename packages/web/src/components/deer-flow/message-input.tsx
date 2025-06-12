@@ -99,6 +99,7 @@ const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
             editorRef.current?.getJSON() ?? [],
           );
           onEnter(text, resources);
+          editorRef.current?.commands.clearContent();
         }
       },
     }));

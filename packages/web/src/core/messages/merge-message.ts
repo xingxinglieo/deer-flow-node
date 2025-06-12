@@ -25,7 +25,7 @@ export function mergeMessage(message: Message, event: ChatEvent) {
   }
   if (event.data.finish_reason) {
     message.finish_reason = event.data.finish_reason;
-    message.is_streaming = false;
+    message.isStreaming = false;
     if (message.tool_calls) {
       message.tool_calls.forEach((tool_call) => {
         if (tool_call.args_chunks?.length) {
@@ -91,6 +91,6 @@ function mergeToolCallResultMessage(
 }
 
 function mergeInterruptMessage(message: Message, event: InterruptEvent) {
-  message.is_streaming = false;
+  message.isStreaming = false;
   message.options = event.data.options;
 }

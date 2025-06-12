@@ -1,21 +1,22 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { nanoid } from "nanoid";
-import { toast } from "sonner";
-import { create } from "zustand";
-import { useShallow } from "zustand/react/shallow";
+import { nanoid } from 'nanoid';
+import { toast } from 'sonner';
+import { create, StateCreator } from 'zustand';
+import { devtools } from 'zustand/middleware';
+import { useShallow } from 'zustand/react/shallow';
 
-import { chatStream, generatePodcast } from "../api";
-import type { Message, Resource } from "../messages";
-import { mergeMessage } from "../messages";
-import { parseJSON } from "../utils";
+import { chatStream, generatePodcast } from '../api';
+import type { Message, Resource } from '../messages';
+import { mergeMessage } from '../messages';
+import { parseJSON } from '../utils';
 
-import { getChatStreamSettings } from "./settings-store";
+import { getChatStreamSettings } from './settings-store';
 
 const THREAD_ID = nanoid();
 
-export const useStore = create<{
+type State = {
   responding: boolean;
   threadId: string | undefined;
   messageIds: string[];
@@ -33,7 +34,9 @@ export const useStore = create<{
   openResearch: (researchId: string | null) => void;
   closeResearch: () => void;
   setOngoingResearch: (researchId: string | null) => void;
-}>((set) => ({
+};
+
+const createStore: StateCreator<State, [['zustand/devtools', never]], []> = (set) => ({
   responding: false,
   threadId: THREAD_ID,
   messageIds: [],
@@ -48,12 +51,12 @@ export const useStore = create<{
   appendMessage(message: Message) {
     set((state) => ({
       messageIds: [...state.messageIds, message.id],
-      messages: new Map(state.messages).set(message.id, message),
+      messages: new Map(state.messages).set(message.id, message)
     }));
   },
   updateMessage(message: Message) {
     set((state) => ({
-      messages: new Map(state.messages).set(message.id, message),
+      messages: new Map(state.messages).set(message.id, message)
     }));
   },
   updateMessages(messages: Message[]) {
@@ -71,43 +74,50 @@ export const useStore = create<{
   },
   setOngoingResearch(researchId: string | null) {
     set({ ongoingResearchId: researchId });
-  },
-}));
+  }
+});
+
+export const useStore = create<State>()(
+  devtools((...args) => ({
+    ...createStore(...args)
+  }))
+);
+
+console.log(useStore);
 
 export async function sendMessage(
   content?: string,
   {
     interruptFeedback,
-    resources,
+    resources
   }: {
     interruptFeedback?: string;
     resources?: Array<Resource>;
   } = {},
-  options: { abortSignal?: AbortSignal } = {},
+  options: { abortSignal?: AbortSignal } = {}
 ) {
   if (content != null) {
     appendMessage({
       id: nanoid(),
       thread_id: THREAD_ID,
-      role: "user",
+      role: 'user',
       content: content,
       content_chunks: [content],
-      resources,
+      resources
     });
   }
 
   const settings = getChatStreamSettings();
   const stream = chatStream(
-    content ?? "[REPLAY]",
+    content ?? '[REPLAY]',
     {
       ...settings,
       thread_id: THREAD_ID,
       interrupt_feedback: interruptFeedback,
       resources,
-      enable_background_investigation:
-        settings.enable_background_investigation ?? true,
+      enable_background_investigation: settings.enable_background_investigation ?? true
     },
-    options,
+    options
   );
 
   setResponding(true);
@@ -117,7 +127,7 @@ export async function sendMessage(
       const { type, data } = event;
       messageId = data.id;
       let message: Message | undefined;
-      if (type === "tool_call_result") {
+      if (type === 'tool_call_result') {
         message = findMessageByToolCallId(data.tool_call_id);
       } else if (!existsMessage(messageId)) {
         message = {
@@ -125,10 +135,10 @@ export async function sendMessage(
           thread_id: data.thread_id,
           agent: data.agent,
           role: data.role,
-          content: "",
+          content: '',
           content_chunks: [],
-          is_streaming: true,
-          interrupt_feedback: interruptFeedback,
+          isStreaming: true,
+          interrupt_feedback: interruptFeedback
         };
         appendMessage(message);
       }
@@ -138,14 +148,14 @@ export async function sendMessage(
         updateMessage(message);
       }
     }
-  } catch {
-    toast("An error occurred while generating the response. Please try again.");
+  } catch (e) {
+    toast('An error occurred while generating the response. Please try again.');
     // Update message status.
     // TODO: const isAborted = (error as Error).name === "AbortError";
     if (messageId != null) {
       const message = getMessage(messageId);
-      if (message?.is_streaming) {
-        message.is_streaming = false;
+      if (message?.isStreaming) {
+        message.isStreaming = false;
         useStore.getState().updateMessage(message);
       }
     }
@@ -169,8 +179,7 @@ function getMessage(id: string) {
 
 function findMessageByToolCallId(toolCallId: string) {
   return Array.from(useStore.getState().messages.values())
-    .reverse()
-    .find((message) => {
+    .findLast((message) => {
       if (message.tool_calls) {
         return message.tool_calls.some((toolCall) => toolCall.id === toolCallId);
       }
@@ -179,11 +188,7 @@ function findMessageByToolCallId(toolCallId: string) {
 }
 
 function appendMessage(message: Message) {
-  if (
-    message.agent === "coder" ||
-    message.agent === "reporter" ||
-    message.agent === "researcher"
-  ) {
+  if (message.agent === 'coder' || message.agent === 'reporter' || message.agent === 'researcher') {
     if (!getOngoingResearchId()) {
       const id = message.id;
       appendResearch(id);
@@ -195,11 +200,7 @@ function appendMessage(message: Message) {
 }
 
 function updateMessage(message: Message) {
-  if (
-    getOngoingResearchId() &&
-    message.agent === "reporter" &&
-    !message.is_streaming
-  ) {
+  if (getOngoingResearchId() && message.agent === 'reporter' && !message.isStreaming) {
     useStore.getState().setOngoingResearch(null);
   }
   useStore.getState().updateMessage(message);
@@ -214,7 +215,7 @@ function appendResearch(researchId: string) {
   const reversedMessageIds = [...useStore.getState().messageIds].reverse();
   for (const messageId of reversedMessageIds) {
     const message = getMessage(messageId);
-    if (message?.agent === "planner") {
+    if (message?.agent === 'planner') {
       planMessage = message;
       break;
     }
@@ -224,14 +225,8 @@ function appendResearch(researchId: string) {
   useStore.setState({
     ongoingResearchId: researchId,
     researchIds: [...useStore.getState().researchIds, researchId],
-    researchPlanIds: new Map(useStore.getState().researchPlanIds).set(
-      researchId,
-      planMessage!.id,
-    ),
-    researchActivityIds: new Map(useStore.getState().researchActivityIds).set(
-      researchId,
-      messageIds,
-    ),
+    researchPlanIds: new Map(useStore.getState().researchPlanIds).set(researchId, planMessage!.id),
+    researchActivityIds: new Map(useStore.getState().researchActivityIds).set(researchId, messageIds)
   });
 }
 
@@ -242,18 +237,12 @@ function appendResearchActivity(message: Message) {
     const current = researchActivityIds.get(researchId)!;
     if (!current.includes(message.id)) {
       useStore.setState({
-        researchActivityIds: new Map(researchActivityIds).set(researchId, [
-          ...current,
-          message.id,
-        ]),
+        researchActivityIds: new Map(researchActivityIds).set(researchId, [...current, message.id])
       });
     }
-    if (message.agent === "reporter") {
+    if (message.agent === 'reporter') {
       useStore.setState({
-        researchReportIds: new Map(useStore.getState().researchReportIds).set(
-          researchId,
-          message.id,
-        ),
+        researchReportIds: new Map(useStore.getState().researchReportIds).set(researchId, message.id)
       });
     }
   }
@@ -272,26 +261,26 @@ export async function listenToPodcast(researchId: string) {
   const reportMessageId = useStore.getState().researchReportIds.get(researchId);
   if (planMessageId && reportMessageId) {
     const planMessage = getMessage(planMessageId)!;
-    const title = parseJSON(planMessage.content, { title: "Untitled" }).title;
+    const title = parseJSON(planMessage.content, { title: 'Untitled' }).title;
     const reportMessage = getMessage(reportMessageId);
     if (reportMessage?.content) {
       appendMessage({
         id: nanoid(),
         thread_id: THREAD_ID,
-        role: "user",
-        content: "Please generate a podcast for the above research.",
-        content_chunks: [],
+        role: 'user',
+        content: 'Please generate a podcast for the above research.',
+        content_chunks: []
       });
       const podCastMessageId = nanoid();
       const podcastObject = { title, researchId };
       const podcastMessage: Message = {
         id: podCastMessageId,
         thread_id: THREAD_ID,
-        role: "assistant",
-        agent: "podcast",
+        role: 'assistant',
+        agent: 'podcast',
         content: JSON.stringify(podcastObject),
         content_chunks: [],
-        is_streaming: true,
+        isStreaming: true
       };
       appendMessage(podcastMessage);
       // Generating podcast...
@@ -301,27 +290,24 @@ export async function listenToPodcast(researchId: string) {
       } catch (e) {
         console.error(e);
         useStore.setState((state) => ({
-          messages: new Map(useStore.getState().messages).set(
-            podCastMessageId,
-            {
-              ...state.messages.get(podCastMessageId)!,
-              content: JSON.stringify({
-                ...podcastObject,
-                error: e instanceof Error ? e.message : "Unknown error",
-              }),
-              is_streaming: false,
-            },
-          ),
+          messages: new Map(useStore.getState().messages).set(podCastMessageId, {
+            ...state.messages.get(podCastMessageId)!,
+            content: JSON.stringify({
+              ...podcastObject,
+              error: e instanceof Error ? e.message : 'Unknown error'
+            }),
+            isStreaming: false
+          })
         }));
-        toast("An error occurred while generating podcast. Please try again.");
+        toast('An error occurred while generating podcast. Please try again.');
         return;
       }
       useStore.setState((state) => ({
         messages: new Map(useStore.getState().messages).set(podCastMessageId, {
           ...state.messages.get(podCastMessageId)!,
           content: JSON.stringify({ ...podcastObject, audioUrl }),
-          is_streaming: false,
-        }),
+          isStreaming: false
+        })
       }));
     }
   }
@@ -332,16 +318,12 @@ export function useResearchMessage(researchId: string) {
     useShallow((state) => {
       const messageId = state.researchPlanIds.get(researchId);
       return messageId ? state.messages.get(messageId) : undefined;
-    }),
+    })
   );
 }
 
 export function useMessage(messageId: string | null | undefined) {
-  return useStore(
-    useShallow((state) =>
-      messageId ? state.messages.get(messageId) : undefined,
-    ),
-  );
+  return useStore(useShallow((state) => (messageId ? state.messages.get(messageId) : undefined)));
 }
 
 export function useMessageIds() {
@@ -352,13 +334,11 @@ export function useLastInterruptMessage() {
   return useStore(
     useShallow((state) => {
       if (state.messageIds.length >= 2) {
-        const lastMessage = state.messages.get(
-          state.messageIds[state.messageIds.length - 1]!,
-        );
-        return lastMessage?.finish_reason === "interrupt" ? lastMessage : null;
+        const lastMessage = state.messages.get(state.messageIds[state.messageIds.length - 1]!);
+        return lastMessage?.finish_reason === 'interrupt' ? lastMessage : null;
       }
       return null;
-    }),
+    })
   );
 }
 
@@ -366,15 +346,13 @@ export function useLastFeedbackMessageId() {
   const waitingForFeedbackMessageId = useStore(
     useShallow((state) => {
       if (state.messageIds.length >= 2) {
-        const lastMessage = state.messages.get(
-          state.messageIds[state.messageIds.length - 1]!,
-        );
-        if (lastMessage && lastMessage.finish_reason === "interrupt") {
+        const lastMessage = state.messages.get(state.messageIds[state.messageIds.length - 1]!);
+        if (lastMessage && lastMessage.finish_reason === 'interrupt') {
           return state.messageIds[state.messageIds.length - 2];
         }
       }
       return null;
-    }),
+    })
   );
   return waitingForFeedbackMessageId;
 }
@@ -386,6 +364,6 @@ export function useToolCalls() {
         ?.map((id) => getMessage(id)?.tool_calls)
         .filter((toolCalls) => toolCalls != null)
         .flat();
-    }),
+    })
   );
 }

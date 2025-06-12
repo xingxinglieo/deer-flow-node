@@ -1,16 +1,16 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { env } from "~/env";
+import { env } from '~/env';
 
-import type { MCPServerMetadata } from "../mcp";
-import type { Resource } from "../messages";
-import { extractReplayIdFromSearchParams } from "../replay/get-replay-id";
-import { fetchStream } from "../sse";
-import { sleep } from "../utils";
+import type { MCPServerMetadata } from '../mcp';
+import type { Resource } from '../messages';
+import { extractReplayIdFromSearchParams } from '../replay/get-replay-id';
+import { fetchStream } from '../sse';
+import { sleep } from '../utils';
 
-import { resolveServiceURL } from "./resolve-service-url";
-import type { ChatEvent } from "./types";
+import { resolveServiceURL } from './resolve-service-url';
+import type { ChatEvent } from './types';
 
 export async function* chatStream(
   userMessage: string,
@@ -33,8 +33,15 @@ export async function* chatStream(
       >;
     };
   },
-  options: { abortSignal?: AbortSignal } = {},
+  options: {
+    abortSignal?: AbortSignal;
+    batchCountPerSecond?: number;
+  } = {}
 ) {
+  const { batchCountPerSecond = 200, abortSignal } = options;
+  const Timeout = 200;
+  const batchCountPerTimeout = Math.ceil((Timeout / 1000) * batchCountPerSecond);
+  // const maxEventsPerBatch = maxEventsPerSecond;
   // if (
   //   env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY ||
   //   location.search.includes("mock") ||
@@ -42,18 +49,48 @@ export async function* chatStream(
   // ) {
   //   return yield* chatReplayStream(userMessage, params, options);
   // }
-  const stream = fetchStream(resolveServiceURL("chat/stream"), {
+  const stream = fetchStream(resolveServiceURL('chat/stream'), {
     body: JSON.stringify({
-      messages: [{ role: "user", content: userMessage }],
-      ...params,
+      messages: [{ role: 'user', content: userMessage }],
+      ...params
     }),
-    signal: options.abortSignal
+    signal: abortSignal
   });
-  for await (const event of stream) {
-    yield {
-      type: event.event,
-      data: JSON.parse(event.data),
-    } as ChatEvent;
+
+  const events: ChatEvent[] = []; // 引用类型，可以在函数间共享
+  let streamEnded = false;
+
+  let error: any = null;
+
+  (async () => {
+    try {
+      for await (const event of stream) {
+        // 解析单个事件
+        const parsedEvent: ChatEvent = {
+          type: event.event as ChatEvent['type'],
+          data: JSON.parse(event.data)
+        };
+
+        events.push(parsedEvent);
+      }
+    } catch (e) {
+      error = e;
+    } finally {
+      streamEnded = true;
+    }
+  })();
+
+  while (true) {
+    await sleep(Timeout);
+    for (let i = 0; i < batchCountPerTimeout && events.length > 0; i++) {
+      yield events.shift()!;
+    }
+    if (streamEnded && events.length === 0) {
+      if (error) {
+        throw error;
+      }
+      break;
+    }
   }
 }
 

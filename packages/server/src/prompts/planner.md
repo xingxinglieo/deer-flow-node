@@ -157,17 +157,17 @@ Directly output the raw JSON format of `Plan` without "```json". The `Plan` inte
 
 ```ts
 interface Step {
-  need_search: boolean; // Must be explicitly set for each step
   title: string;
   description: string; // Specify exactly what data to collect. If the user input contains a link, please retain the full Markdown format when necessary.
+  need_search: boolean; // Must be explicitly set for each step
   step_type: "research" | "processing"; // Indicates the nature of the step
 }
 
 interface Plan {
+  title: string; // first output
+  thought: string; // second output
   locale: string; // e.g. "en-US" or "zh-CN", based on the user's language or specific request
   has_enough_context: boolean;
-  thought: string;
-  title: string;
   steps: Step[]; // Research & Processing steps to get more context
 }
 ```

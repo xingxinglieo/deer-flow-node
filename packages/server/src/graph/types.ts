@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { Annotation, messagesStateReducer } from "@langchain/langgraph";
-import { BaseMessage } from "@langchain/core/messages";
-import { z } from "zod";
+import { Annotation, messagesStateReducer, START } from '@langchain/langgraph';
+import { BaseMessage } from '@langchain/core/messages';
+import { z } from 'zod';
 
 export interface Resource {
   uri: string;
@@ -11,16 +11,48 @@ export interface Resource {
   content?: string;
 }
 
+export enum StepType {
+  RESEARCH = 'research',
+  PROCESSING = 'processing'
+}
+
+export const StepTypechema = z.union([z.literal('research'), z.literal('processing')]);
+
+export const StepSchema = z.object({
+  need_search: z.boolean().describe('Must be explicitly set for each step'),
+  title: z.string(),
+  description: z.string().describe('Specify exactly what data to collect'),
+  step_type: StepTypechema.describe('Indicates the nature of the step'),
+  execution_res: z
+    .string()
+    .optional()
+    // .nullable()
+    .describe('The Step execution result')
+});
+
+export type Step = z.infer<typeof StepSchema>;
+
 export const PlanSchema = z.object({
+  has_enough_context: z.boolean(),
   title: z.string(),
   thought: z.string(),
-  steps: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    type: z.string().optional().nullable(),
-  })),
-  // hasEnoughContext: z.boolean(),
-});
+  steps: z.array(StepSchema).describe('Research & Processing steps to get more context'),
+  locale: z.string().describe("e.g. 'en-US' or 'zh-CN', based on the user's language")
+}).describe(`examlple:
+  {
+  title: "AI Market Research Plan",
+  thought: "To understand the current market trends in AI, we need to gather comprehensive information.",
+  steps: [
+    {
+      need_search: true,
+      title: "Current AI Market Analysis",
+      description: "Collect data on market size, growth rates, major players, and investment trends in AI sector.",
+      step_type: "research"
+    }
+  ],
+  locale: "zh-CN",
+  has_enough_context: false,
+}`);
 
 export type Plan = z.infer<typeof PlanSchema>;
 
@@ -33,44 +65,48 @@ export interface Message {
 export const StateAnnotation = Annotation.Root({
   messages: Annotation<BaseMessage[]>({
     reducer: messagesStateReducer,
-    default: () => [],
+    default: () => []
   }),
   locale: Annotation<string>({
     reducer: (x, y) => y ?? x,
-    default: () => "zh-CN",
+    default: () => 'zh-CN'
   }),
   observations: Annotation<string[]>({
     reducer: (x, y) => y ?? x,
-    default: () => [],
+    default: () => []
   }),
   resources: Annotation<Resource[]>({
     reducer: (x, y) => y ?? x,
-    default: () => [],
+    default: () => []
   }),
   plan_iterations: Annotation<number>({
     reducer: (x, y) => y ?? x,
-    default: () => 0,
+    default: () => 0
   }),
-  current_plan: Annotation<Plan | string | null>({
+  current_plan: Annotation<Plan | null>({
     reducer: (x, y) => y ?? x,
-    default: () => null,
+    default: () => null
   }),
   final_report: Annotation<string>({
     reducer: (x, y) => y ?? x,
-    default: () => "",
+    default: () => ''
   }),
   auto_accepted_plan: Annotation<boolean>({
     reducer: (x, y) => y ?? x,
-    default: () => false,
+    default: () => false
   }),
   enable_background_investigation: Annotation<boolean>({
     reducer: (x, y) => y ?? x,
-    default: () => true,
+    default: () => true
   }),
   background_investigation_results: Annotation<string | null>({
     reducer: (x, y) => y ?? x,
-    default: () => null,
+    default: () => null
   }),
-}); 
+  currentNodeName: Annotation<string>({
+    reducer: (x, y) => y ?? x,
+    default: () => START
+  })
+});
 
 export type State = typeof StateAnnotation.State;
