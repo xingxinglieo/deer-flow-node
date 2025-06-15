@@ -1,4 +1,4 @@
-import { Command, Pregel } from '@langchain/langgraph';
+import { Command, Pregel, MemorySaver } from '@langchain/langgraph';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { HumanMessage } from '@langchain/core/messages';
 import { RunnableConfig } from '@langchain/core/runnables';
@@ -7,6 +7,7 @@ import { Configuration } from '../../config/configuration';
 import { applyPromptTemplate } from '@/prompts/template';
 import { AGENT_LLM_MAP } from '@/config/agents';
 import { getLLMByType } from '@/llm/index';
+import dayjs from 'dayjs';
 
 export async function setupAndExecuteAgentStep(
   state: State,
@@ -65,12 +66,12 @@ export async function setupAndExecuteAgentStep(
   //     return await _executeAgentStep(state, agent, agentType);
   // } else {
   // Use default tools if no MCP servers are configured
-  const agent = createAgent(agentType, agentType, defaultTools, agentType);
-  return await executeAgentStep(state, agent, agentType);
+  const agent = createAgent(agentType, agentType, defaultTools);
+  return await executeAgentStep(state, agent, agentType, config);
   // }
 }
 
-function createAgent(agentName: string, agentType: string, tools: any[], promptTemplate: string): any {
+function createAgent(agentName: string, agentType: string, tools: any[]): any {
   /**
    * Factory function to create agents with consistent configuration.
    */
@@ -78,14 +79,16 @@ function createAgent(agentName: string, agentType: string, tools: any[], promptT
     name: agentName,
     llm: getLLMByType(AGENT_LLM_MAP[agentType]!),
     tools: tools,
-    prompt: (state: any) => applyPromptTemplate(promptTemplate, state)
+    // prompt: (state: any) => applyPromptTemplate(promptTemplate, state),
+    checkpointer: new MemorySaver()
   });
 }
 
 async function executeAgentStep(
   state: State,
   agent: Pregel<any, any>,
-  agentName: string
+  agentName: string,
+  config?: RunnableConfig
 ): Promise<Command<'research_team'>> {
   // Helper function to execute a step using the specified agent
   const currentPlan = state.current_plan;
@@ -115,6 +118,7 @@ async function executeAgentStep(
 
   // Prepare the input for the agent with completed steps info
   const agentInput = [
+    ...applyPromptTemplate(agentName, state),
     new HumanMessage({
       content: `${completedStepsInfo}# Current Task\n\n## Title\n\n${currentStep.title}\n\n## Description\n\n${currentStep.description}\n\n## Locale\n\n${state.locale || 'en-US'}`
     })
@@ -146,37 +150,49 @@ async function executeAgentStep(
   }
 
   // Invoke the agent
-  const defaultRecursionLimit = 25;
-  let recursionLimit: number;
-  try {
-    const envValueStr = process.env.AGENT_RECURSION_LIMIT || defaultRecursionLimit.toString();
-    const parsedLimit = parseInt(envValueStr);
-
-    if (parsedLimit > 0) {
-      recursionLimit = parsedLimit;
-      console.info(`Recursion limit set to: ${recursionLimit}`);
-    } else {
-      console.warn(
-        `AGENT_RECURSION_LIMIT value '${envValueStr}' (parsed as ${parsedLimit}) is not positive. ` +
-          `Using default value ${defaultRecursionLimit}.`
-      );
-      recursionLimit = defaultRecursionLimit;
-    }
-  } catch (error) {
-    const rawEnvValue = process.env.AGENT_RECURSION_LIMIT;
-    console.warn(
-      `Invalid AGENT_RECURSION_LIMIT value: '${rawEnvValue}'. ` + `Using default value ${defaultRecursionLimit}.`
-    );
-    recursionLimit = defaultRecursionLimit;
-  }
+  const defaultRecursionLimit = 4;
+  const recursionLimit = parseInt(process.env.AGENT_RECURSION_LIMIT || defaultRecursionLimit.toString());
 
   console.info(`Agent input: ${JSON.stringify(agentInput)}`);
-  const result = await agent.invoke(
-    {
-      messages: agentInput
-    },
-    { recursionLimit }
-  );
+
+  // 配置 agent invoke 的参数，包括 thread_id 用于状态管理
+  const thread_id = `agent-${agentName}-${dayjs().format('YYYY-MM-DD HH:mm:ss')}`;
+  const result = await agent
+    .invoke(
+      {
+        messages: agentInput
+      },
+      {
+        configurable: {
+          thread_id
+        },
+        recursionLimit
+      }
+    )
+    .catch(async (e: any) => {
+      console.error('Agent execution failed:', e);
+      const states = await agent.getState({
+        configurable: {
+          thread_id
+        }
+      });
+      const messages = [
+        ...states.values.messages,
+        new HumanMessage({
+          content: `Tool usage limit reached. Please summarize the information gathered and draw conclusions:
+  
+  1. Key Information Summary
+  2. Main Conclusions
+  3. Remaining Issues
+  
+  Provide the best recommendations based on the available information.`
+        })
+      ];
+      const response = await getLLMByType(AGENT_LLM_MAP[agentName]!).invoke(messages);
+      return {
+        messages: [...messages, response]
+      };
+    });
 
   // Process the result
   const responseContent = result.messages[result.messages.length - 1].content;

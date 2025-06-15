@@ -14,7 +14,7 @@ import { parseJSON } from '../utils';
 
 import { getChatStreamSettings } from './settings-store';
 
-const THREAD_ID = nanoid();
+export const THREAD_ID = nanoid();
 
 type State = {
   responding: boolean;

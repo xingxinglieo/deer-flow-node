@@ -26,13 +26,12 @@ export async function backgroundInvestigationNode(state: State, config?: Runnabl
 
   try {
     // 使用 tavilySearch 工具进行搜索
-    const resStr = await tavilySearch.invoke({
+    const res = await tavilySearch.invoke({
       query,
-      searchDepth: 'advanced'
+      searchDepth: 'advanced',
     });
-    const results = JSON.parse(resStr);
 
-    backgroundInvestigationResults = results.map((elem: any) => ({
+    backgroundInvestigationResults =  res.results.map((elem: any) => ({
       title: elem.title,
       content: elem.content
     }));

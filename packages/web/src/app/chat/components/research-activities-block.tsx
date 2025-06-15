@@ -46,7 +46,7 @@ export function ResearchActivitiesBlock({ className, researchId }: { className?:
               >
                 <ActivityMessage messageId={activityId} />
                 <ActivityListItem messageId={activityId} />
-                {i !== activityIds.length - 1 && <hr className="my-8" />}
+                {i !== activityIds.length - 1 && <hr className="my-8 only:hidden" />}
               </motion.li>
             )
         )}
@@ -142,26 +142,37 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   const searching = useMemo(() => {
     return toolCall.result === undefined;
   }, [toolCall.result]);
-  const searchResults = useMemo<SearchResult[]>(() => {
-    let results: SearchResult[] | undefined = undefined;
+  const searchResults = useMemo<{
+    results: SearchResult[];
+    answer: string;
+  }>(() => {
+    let info:
+      | {
+          results: SearchResult[];
+          answer: string;
+        }
+      | undefined = undefined;
     try {
-      results = toolCall.result ? parseJSON(toolCall.result, []) : undefined;
+      info = toolCall.result ? parseJSON(toolCall.result, { results: [], answer: '' }) : undefined;
     } catch {
-      results = undefined;
+      info = undefined;
     }
-    if (Array.isArray(results)) {
-      results.forEach((result) => {
+    if (Array.isArray(info?.results)) {
+      info.results.forEach((result) => {
         if (result.type === 'page') {
           __pageCache.set(result.url, result.title);
         }
       });
     } else {
-      results = [];
+      info = { results: [], answer: '' };
     }
-    return results;
+    return info;
   }, [toolCall.result]);
-  const pageResults = useMemo(() => searchResults?.filter((result) => result.type === 'page'), [searchResults]);
-  const imageResults = useMemo(() => searchResults?.filter((result) => result.type === 'image'), [searchResults]);
+  const pageResults = useMemo(() => searchResults?.results.filter((result) => result.type === 'page'), [searchResults]);
+  const imageResults = useMemo(
+    () => searchResults?.results.filter((result) => result.type === 'image'),
+    [searchResults]
+  );
   return (
     <section className="mt-4 pl-4">
       <div className="font-medium italic">
@@ -248,6 +259,21 @@ function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
               </motion.li>
             ))}
           </ul>
+        )}
+        {searchResults?.answer && (
+          <div className="mt-2 text-sm">
+            <RainbowText
+              className="flex items-center"
+              animated={searchResults === undefined}
+            >
+              <Markdown
+                animated
+                checkLinkCredibility
+              >
+                {searchResults.answer}
+              </Markdown>
+            </RainbowText>
+          </div>
         )}
       </div>
     </section>

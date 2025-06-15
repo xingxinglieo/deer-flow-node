@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
+import { THREAD_ID } from "@/core/store";
 import { motion } from "framer-motion";
 import { useCallback, useMemo } from "react";
 
@@ -68,7 +69,7 @@ export function PlanCard({
               plan.title !== undefined && plan.title !== ""
                 ? plan.title
                 : "Deep Research"
-            }`}
+            }(${THREAD_ID})`}
           </Markdown>
         </CardTitle>
       </CardHeader>

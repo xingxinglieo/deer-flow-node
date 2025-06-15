@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { config } from 'dotenv';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { tavily, TavilySearchResponse } from '@tavily/core';
@@ -19,7 +18,16 @@ if (!apiKey) {
  * 执行完整的网络搜索，返回与 clean_results_with_images 相同格式的结果
  */
 export const tavilySearch = tool(
-  async ({ query, includeDomains, excludeDomains, searchDepth, timeRange, topic }, config: RunnableConfig) => {
+  async (
+    {
+      query,
+      // includeDomains, excludeDomains,
+      // searchDepth,
+      timeRange,
+      topic
+    },
+    config: RunnableConfig
+  ) => {
     const configurable = Configuration.fromRunnableConfig(config);
     const client = tavily({ apiKey });
 
@@ -32,10 +40,11 @@ export const tavilySearch = tool(
         includeRawContent: true, // markdown 格式
         includeImages: true,
         includeImageDescriptions: true,
-        includeAnswer: false,
-        searchDepth: searchDepth ?? 'advanced',
-        includeDomains: includeDomains ?? [],
-        excludeDomains: excludeDomains ?? [],
+        includeAnswer: true,
+        // searchDepth: searchDepth ?? 'advanced',
+        searchDepth: 'advanced',
+        // includeDomains: includeDomains ?? [],
+        // excludeDomains: excludeDomains ?? [],
         timeRange: timeRange ?? undefined,
         topic: topic ?? undefined
       });
@@ -70,8 +79,10 @@ export const tavilySearch = tool(
 
       const responseTime = Date.now() - startTime;
       console.info(`Tavily search completed in ${responseTime}ms, found ${cleanResults.length} results`);
-
-      return JSON.stringify(cleanResults);
+      return {
+        results: cleanResults,
+        answer: response.answer
+      };
     } catch (error) {
       console.error('Tavily search error:', error);
       throw new Error(`Tavily search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -87,47 +98,47 @@ export const tavilySearch = tool(
 Use this for current information, news, research, and any web-based queries.`,
     schema: z.object({
       query: z.string().describe('Search query to look up'),
-      includeDomains: z
-        .array(z.string())
-        .optional()
-        .describe(
-          `A list of domains to restrict search results to.
+      // includeDomains: z
+      //   .array(z.string())
+      //   .optional()
+      //   .describe(
+      //     `A list of domains to restrict search results to.
 
-      Use this parameter when:
-      1. The user explicitly requests information from specific websites (e.g., "Find climate data from nasa.gov")
-      2. The user mentions an organization or company without specifying the domain (e.g., "Find information about iPhones from Apple")
+      // Use this parameter when:
+      // 1. The user explicitly requests information from specific websites (e.g., "Find climate data from nasa.gov")
+      // 2. The user mentions an organization or company without specifying the domain (e.g., "Find information about iPhones from Apple")
 
-      In both cases, you should determine the appropriate domains (e.g., ["nasa.gov"] or ["apple.com"]) and set this parameter.
+      // In both cases, you should determine the appropriate domains (e.g., ["nasa.gov"] or ["apple.com"]) and set this parameter.
 
-      Results will ONLY come from the specified domains - no other sources will be included.
-      Default is None (no domain restriction).`
-        ),
-      excludeDomains: z
-        .array(z.string())
-        .optional()
-        .describe(
-          `A list of domains to exclude from search results.
+      // Results will ONLY come from the specified domains - no other sources will be included.
+      // Default is None (no domain restriction).`
+      //   ),
+      // excludeDomains: z
+      //   .array(z.string())
+      //   .optional()
+      //   .describe(
+      //     `A list of domains to exclude from search results.
 
-      Use this parameter when:
-      1. The user explicitly requests to avoid certain websites (e.g., "Find information about climate change but not from twitter.com")
-      2. The user mentions not wanting results from specific organizations without naming the domain (e.g., "Find phone reviews but nothing from Apple")
+      // Use this parameter when:
+      // 1. The user explicitly requests to avoid certain websites (e.g., "Find information about climate change but not from twitter.com")
+      // 2. The user mentions not wanting results from specific organizations without naming the domain (e.g., "Find phone reviews but nothing from Apple")
 
-      In both cases, you should determine the appropriate domains to exclude (e.g., ["twitter.com"] or ["apple.com"]) and set this parameter.
+      // In both cases, you should determine the appropriate domains to exclude (e.g., ["twitter.com"] or ["apple.com"]) and set this parameter.
 
-      Results will filter out all content from the specified domains.
-      Default is None (no domain exclusion).`
-        ),
-      searchDepth: z
-        .enum(['basic', 'advanced'])
-        .optional()
-        .describe(
-          `Controls search thoroughness and result comprehensiveness.
-    
-    Use "basic" for simple queries requiring quick, straightforward answers.
-    
-    Use "advanced" (default) for complex queries, specialized topics, 
-    rare information, or when in-depth analysis is needed.`
-        ),
+      // Results will filter out all content from the specified domains.
+      // Default is None (no domain exclusion).`
+      //   ),
+      //   searchDepth: z
+      //     .enum(['basic', 'advanced'])
+      //     .optional()
+      //     .describe(
+      //       `Controls search thoroughness and result comprehensiveness.
+
+      // Use "basic" for simple queries requiring quick, straightforward answers.
+
+      // Use "advanced" (default) for complex queries, specialized topics,
+      // rare information, or when in-depth analysis is needed.`
+      //     ),
       timeRange: z
         .enum(['day', 'week', 'month', 'year'])
         .optional()
