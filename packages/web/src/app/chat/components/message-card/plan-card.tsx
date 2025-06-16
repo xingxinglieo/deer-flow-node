@@ -69,7 +69,7 @@ export function PlanCard({
               plan.title !== undefined && plan.title !== ""
                 ? plan.title
                 : "Deep Research"
-            }(${THREAD_ID})`}
+            }\n(ID: ${THREAD_ID})`}
           </Markdown>
         </CardTitle>
       </CardHeader>

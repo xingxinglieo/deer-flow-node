@@ -178,6 +178,7 @@ export function ResearchBlock({
               className="h-full"
               scrollShadowColor="var(--card)"
               autoScrollToBottom={!hasReport || reportStreaming}
+              horizontal={true}
             >
               {researchId && (
                 <ResearchActivitiesBlock

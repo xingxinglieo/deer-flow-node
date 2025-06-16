@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { PythonOutlined } from '@ant-design/icons';
+import { JavaScriptOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { LRUCache } from 'lru-cache';
 import { BookOpenText, FileText, PencilRuler, Search } from 'lucide-react';
@@ -97,7 +97,7 @@ function ActivityListItem({ messageId }: { messageId: string }) {
           );
         } else if (toolCall.name === 'execute_js_code') {
           return (
-            <PythonToolCall
+            <JavaScriptToolCall
               key={toolCall.id}
               toolCall={toolCall}
             />
@@ -387,7 +387,7 @@ function RetrieverToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   );
 }
 
-function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
+function JavaScriptToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   const code = useMemo<string | undefined>(() => {
     return (toolCall.args as { code?: string }).code;
   }, [toolCall.args]);
@@ -395,18 +395,18 @@ function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
   return (
     <section className="mt-4 pl-4">
       <div className="flex items-center">
-        <PythonOutlined className={'mr-2'} />
+        <JavaScriptOutlined className={'mr-2'} />
         <RainbowText
           className="text-base font-medium italic"
           animated={toolCall.result === undefined}
         >
-          Running Python code
+          Running JavaScript code
         </RainbowText>
       </div>
       <div>
         <div className="bg-accent mt-2 max-h-[400px] max-w-[calc(100%-120px)] overflow-y-auto rounded-md p-2 text-sm">
           <SyntaxHighlighter
-            language="python"
+            language="javascript"
             style={resolvedTheme === 'dark' ? dark : docco}
             customStyle={{
               background: 'transparent',
@@ -418,12 +418,12 @@ function PythonToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
           </SyntaxHighlighter>
         </div>
       </div>
-      {toolCall.result && <PythonToolCallResult result={toolCall.result} />}
+      {toolCall.result && <JavaScriptToolCallResult result={toolCall.result} />}
     </section>
   );
 }
 
-function PythonToolCallResult({ result }: { result: string }) {
+function JavaScriptToolCallResult({ result }: { result: string }) {
   const { resolvedTheme } = useTheme();
   const hasError = useMemo(() => result.includes('Error executing code:\n'), [result]);
   const error = useMemo(() => {
@@ -437,7 +437,7 @@ function PythonToolCallResult({ result }: { result: string }) {
   }, [result, hasError]);
   const stdout = useMemo(() => {
     if (!hasError) {
-      const parts = result.split('```\nStdout: ');
+      const parts = result.split('```\nResult: ');
       if (parts.length > 1) {
         return parts[1]!.trim();
       }

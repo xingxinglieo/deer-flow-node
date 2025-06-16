@@ -1,12 +1,12 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { graph } from '../graph/builder';
-import { State } from '../graph/types';
-import { isToolMessage, isAIMessageChunk } from '@langchain/core/messages';
+import { isAIMessageChunk } from '@langchain/core/messages';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { ReadableStream } from 'stream/web';
-import { Command, START } from '@langchain/langgraph';
+import { Command } from '@langchain/langgraph';
+import { replayRecorder } from '../utils/replay-recorder';
 
 /**
  * 生成唯一 ID
@@ -30,7 +30,7 @@ const ChatMessageSchema = z.object({
 
 const ChatRequestSchema = z.object({
   messages: z.array(ChatMessageSchema),
-  thread_id: z.string().optional().nullable(),
+  thread_id: z.string(),
   resources: z.array(z.any()).optional().nullable(),
   max_plan_iterations: z.number().optional().nullable(),
   max_step_num: z.number().optional().nullable(),
@@ -61,9 +61,46 @@ export async function chatRoutes(fastify: FastifyInstance) {
       reply
         .header('Content-Type', 'text/event-stream')
         .header('Cache-Control', 'no-cache')
-        .send(ReadableStream.from(streamWorkflowGenerator(request.body)));
+        .send(ReadableStream.from(recordingStreamWrapper(request.body)));
     }
   );
+}
+
+/**
+ * 录制流包装器 - 统一处理录制逻辑
+ */
+async function* recordingStreamWrapper(requestBody: ChatRequest): AsyncGenerator<string, void, unknown> {
+  // 开始录制
+  const threadId = requestBody.thread_id || generateId();
+  const recordingSession = replayRecorder.startRecording(threadId);
+
+  try {
+    // 录制用户消息（取最后一条用户消息）
+    const lastUserMessage = requestBody.messages[requestBody.messages.length - 1];
+    if (lastUserMessage && lastUserMessage.role === 'user') {
+      await recordingSession.recordUserMessage(lastUserMessage.content as string, generateId());
+    }
+
+    // 获取原始流并处理每个事件
+    const originalStream = streamWorkflowGenerator({
+      ...requestBody,
+      thread_id: threadId
+    });
+
+    for await (const sseEvent of originalStream) {
+      // 直接录制原始 SSE 事件字符串
+      await recordingSession.recordRawSSEEvent(sseEvent);
+      
+      // 转发事件给客户端
+      yield sseEvent;
+    }
+  } catch (error) {
+    console.error('Error in recording stream wrapper:', error);
+    throw error;
+  } finally {
+    // 完成后停止录制
+    replayRecorder.stopRecording(threadId);
+  }
 }
 
 /**
@@ -118,6 +155,7 @@ async function* streamWorkflowGenerator({
     const { event, data, metadata, name, tags, run_id } = args;
     const agent = metadata.checkpoint_ns?.split(':')?.[0] ?? name;
     console.log(event);
+
     if (event === 'on_chain_stream') {
       const { chunk } = data;
       if (Array.isArray(chunk) && '__interrupt__' in (chunk[1] ?? {})) {
@@ -144,6 +182,7 @@ async function* streamWorkflowGenerator({
         role: 'assistant',
         content: chunk.content || ''
       };
+
       if (isAIMessageChunk(chunk)) {
         if (chunk.tool_calls && chunk.tool_calls.length > 0) {
           yield makeEvent('tool_calls', {
@@ -162,7 +201,6 @@ async function* streamWorkflowGenerator({
       }
     } else if (event === 'on_chat_model_end') {
       const { output: chunk } = data;
-      // if (metadata.langgraph_node === 'planner' || metadata.langgraph_node === 'reporter') {
       yield makeEvent('message_chunk', {
         thread_id,
         id: chunk.id,
@@ -171,7 +209,6 @@ async function* streamWorkflowGenerator({
         content: '',
         finish_reason: 'stop'
       });
-      // }
     } else if (event === 'on_tool_start') {
       console.log(args);
     } else if (event === 'on_tool_end') {

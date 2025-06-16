@@ -144,7 +144,7 @@ export function AddMCPServerDialog({ onAdd }: { onAdd?: (servers: MCPServerMetad
           <Textarea
             className="h-[360px]"
             placeholder={
-              'Example:\n\n{\n  "mcpServers": {\n    "My Server": {\n      "command": "python",\n      "args": [\n        "-m", "mcp_server"\n      ],\n      "env": {\n        "API_KEY": "YOUR_API_KEY"\n      }\n    }\n  }\n}'
+              'Example:\n\n{\n  "mcpServers": {\n    "My Server": {\n      "command": "javascript",\n      "args": [\n        "-m", "mcp_server"\n      ],\n      "env": {\n        "API_KEY": "YOUR_API_KEY"\n      }\n    }\n  }\n}'
             }
             value={input}
             onChange={(e) => handleChange(e.target.value)}
