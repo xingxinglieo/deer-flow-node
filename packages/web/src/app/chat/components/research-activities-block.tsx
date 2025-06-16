@@ -476,6 +476,7 @@ function MCPToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
         <Accordion
           type="single"
           collapsible
+          defaultValue="item-1"
           className="w-full"
         >
           <AccordionItem value="item-1">
@@ -496,8 +497,8 @@ function MCPToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
               </Tooltip>
             </AccordionTrigger>
             <AccordionContent>
-              {toolCall.result && (
-                <div className="bg-accent max-h-[400px] max-w-[560px] overflow-y-auto rounded-md text-sm">
+              {toolCall.args && (
+                <div className="bg-accent max-h-[200px] max-w-[560px] overflow-y-auto rounded-md text-sm">
                   <SyntaxHighlighter
                     language="json"
                     style={resolvedTheme === 'dark' ? dark : docco}
@@ -507,7 +508,24 @@ function MCPToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
                       boxShadow: 'none'
                     }}
                   >
-                    {toolCall.result.trim()}
+                    {JSON.stringify(toolCall.args, null, 2)}
+                  </SyntaxHighlighter>
+                </div>
+              )}
+            </AccordionContent>
+            <AccordionContent>
+              {toolCall.result && (
+                <div className="bg-accent max-h-[200px] max-w-[560px] overflow-y-auto rounded-md text-sm">
+                  <SyntaxHighlighter
+                    language="json"
+                    style={resolvedTheme === 'dark' ? dark : docco}
+                    customStyle={{
+                      background: 'transparent',
+                      border: 'none',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {JSON.stringify(parseJSON(toolCall.result, toolCall.result), null, 2)}
                   </SyntaxHighlighter>
                 </div>
               )}

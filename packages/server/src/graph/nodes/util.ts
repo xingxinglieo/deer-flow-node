@@ -7,6 +7,7 @@ import { Configuration } from '../../config/configuration';
 import { applyPromptTemplate } from '@/prompts/template';
 import { AGENT_LLM_MAP } from '@/config/agents';
 import { getLLMByType } from '@/llm/index';
+import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import dayjs from 'dayjs';
 
 export async function setupAndExecuteAgentStep(
@@ -34,41 +35,37 @@ export async function setupAndExecuteAgentStep(
   const enabledTools: Record<string, string> = {};
 
   // Extract MCP server configuration for this agent type
-  // if (configurable.mcpSettings) {
-  //     for (const [serverName, serverConfig] of Object.entries(configurable.mcpSettings.servers)) {
-  //         if (
-  //             serverConfig.enabledTools &&
-  //             serverConfig.addToAgents.includes(agentType)
-  //         ) {
-  //             mcpServers[serverName] = Object.fromEntries(
-  //                 Object.entries(serverConfig).filter(([k]) =>
-  //                     ["transport", "command", "args", "url", "env"].includes(k)
-  //                 )
-  //             );
-  //             for (const toolName of serverConfig.enabledTools) {
-  //                 enabledTools[toolName] = serverName;
-  //             }
-  //         }
-  //     }
-  // }
+  if (configurable.mcp_settings?.servers) {
+    for (const [serverName, serverConfig] of Object.entries(configurable.mcp_settings.servers)) {
+      if (serverConfig.enabled_tools && serverConfig.add_to_agents?.includes(agentType)) {
+        mcpServers[serverName] = Object.fromEntries(
+          Object.entries(serverConfig).filter(([k]) => ['url', 'transport'].includes(k))
+        );
+        for (const toolName of serverConfig.enabled_tools) {
+          enabledTools[toolName] = serverName;
+        }
+      }
+    }
+  }
 
+  const loadedTools = [...defaultTools];
   // Create and execute agent with MCP tools if available
-  // if (Object.keys(mcpServers).length > 0) {
-  //     const client = new MultiServerMCPClient(mcpServers);
-  //     const loadedTools = [...defaultTools];
-  //     for (const tool of client.getTools()) {
-  //         if (tool.name in enabledTools) {
-  //             tool.description = `Powered by '${enabledTools[tool.name]}'.\n${tool.description}`;
-  //             loadedTools.push(tool);
-  //         }
-  //     }
-  //     const agent = createAgent(agentType, agentType, loadedTools, agentType);
-  //     return await _executeAgentStep(state, agent, agentType);
-  // } else {
+  let client: MultiServerMCPClient | null = null;
+  if (Object.keys(mcpServers).length > 0) {
+    client = new MultiServerMCPClient(mcpServers);
+    for (const tool of await client.getTools().catch(() => [])) {
+      const [_, serverName, toolName] = tool.name.split('__');
+      if (toolName && serverName && toolName in enabledTools && enabledTools[toolName] === serverName) {
+        tool.description = `Powered by '${enabledTools[tool.name]}'.\n${tool.description}`;
+        loadedTools.push(tool);
+      }
+    }
+  }
   // Use default tools if no MCP servers are configured
-  const agent = createAgent(agentType, agentType, defaultTools);
-  return await executeAgentStep(state, agent, agentType, config);
-  // }
+  const agent = createAgent(agentType, agentType, loadedTools);
+  return await executeAgentStep(state, agent, agentType, config).finally(() => {
+    client?.close();
+  });
 }
 
 function createAgent(agentName: string, agentType: string, tools: any[]): any {
@@ -79,7 +76,6 @@ function createAgent(agentName: string, agentType: string, tools: any[]): any {
     name: agentName,
     llm: getLLMByType(AGENT_LLM_MAP[agentType]!),
     tools: tools,
-    // prompt: (state: any) => applyPromptTemplate(promptTemplate, state),
     checkpointer: new MemorySaver()
   });
 }
@@ -126,18 +122,18 @@ async function executeAgentStep(
 
   // Add citation reminder for researcher agent
   if (agentName === 'researcher') {
-    // TODO: add resource files to the agent input
-    // if (state.resources) {
-    //     let resourcesInfo = "**The user mentioned the following resource files:**\n\n";
-    //     for (const resource of state.resources) {
-    //         resourcesInfo += `- ${resource.title}\n`;
-    //     }
+    // 添加资源文件提示
+    // if (state.resources && state.resources.length > 0) {
+    //   let resourcesInfo = "**The user mentioned the following resource files:**\n\n";
+    //   for (const resource of state.resources) {
+    //     resourcesInfo += `- ${resource.title}\n`;
+    //   }
 
-    //     agentInput.messages.push(
-    //         new HumanMessage({
-    //             content: resourcesInfo + "\n\n" + "You MUST use the **local_search_tool** to retrieve the information from the resource files."
-    //         })
-    //     );
+    //   agentInput.push(
+    //     new HumanMessage({
+    //       content: resourcesInfo + "\n\n" + "You MUST use the **local_search_tool** to retrieve the information from the resource files."
+    //     })
+    //   );
     // }
 
     agentInput.push(
@@ -150,7 +146,7 @@ async function executeAgentStep(
   }
 
   // Invoke the agent
-  const defaultRecursionLimit = 4;
+  const defaultRecursionLimit = 25;
   const recursionLimit = parseInt(process.env.AGENT_RECURSION_LIMIT || defaultRecursionLimit.toString());
 
   console.info(`Agent input: ${JSON.stringify(agentInput)}`);

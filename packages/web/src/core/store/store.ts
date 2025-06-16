@@ -149,9 +149,11 @@ export async function sendMessage(
       }
     }
   } catch (e) {
-    toast('An error occurred while generating the response. Please try again.');
+    const isAborted = e instanceof Error && e.name === 'AbortError';
+    if (!isAborted) {
+      toast('An error occurred while generating the response. Please try again.');
+    }
     // Update message status.
-    // TODO: const isAborted = (error as Error).name === "AbortError";
     if (messageId != null) {
       const message = getMessage(messageId);
       if (message?.isStreaming) {

@@ -50,6 +50,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^0.2.74
         version: 0.2.74(@langchain/core@0.3.57)
+      '@langchain/mcp-adapters':
+        specifier: ^0.5.2
+        version: 0.5.2(@langchain/core@0.3.57)
       '@langchain/openai':
         specifier: ^0.5.11
         version: 0.5.11(@langchain/core@0.3.57)
@@ -2720,6 +2723,22 @@ packages:
       zod: 3.25.36
     transitivePeerDependencies:
       - react
+    dev: false
+
+  /@langchain/mcp-adapters@0.5.2(@langchain/core@0.3.57):
+    resolution: {integrity: sha512-Jh+xjjgyk/gH+Sr17IbHOqoyA1vLIKhvSv93N1FsxuI4TfXjixjgR0WDuobvdqAyhFl7dyh74P8OSEd4Ci6ROg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@langchain/core': ^0.3.44
+    dependencies:
+      '@langchain/core': 0.3.57(openai@4.103.0)
+      '@modelcontextprotocol/sdk': 1.12.1
+      debug: 4.4.1
+      zod: 3.25.36
+    optionalDependencies:
+      extended-eventsource: 1.7.0
+    transitivePeerDependencies:
+      - supports-color
     dev: false
 
   /@langchain/openai@0.5.11(@langchain/core@0.3.57):
@@ -7733,6 +7752,12 @@ packages:
   /extendable-error@0.1.7:
     resolution: {integrity: sha512-UOiS2in6/Q0FK0R0q6UY9vYpQ21mr/Qn1KOnte7vsACuNJf514WvCCUHSRCPcgjPT2bAhNIJdlE6bVap1GKmeg==}
     dev: true
+
+  /extended-eventsource@1.7.0:
+    resolution: {integrity: sha512-s8rtvZuYcKBpzytHb5g95cHbZ1J99WeMnV18oKc5wKoxkHzlzpPc/bNAm7Da2Db0BDw0CAu1z3LpH+7UsyzIpw==}
+    requiresBuild: true
+    dev: false
+    optional: true
 
   /external-editor@3.1.0:
     resolution: {integrity: sha512-hMQ4CX1p1izmuLYyZqLMO/qGNw10wSv9QDCPfzXfyFrOaCSSoRfqE1Kf1s5an66J5JZC62NewG+mK49jOCtQew==}

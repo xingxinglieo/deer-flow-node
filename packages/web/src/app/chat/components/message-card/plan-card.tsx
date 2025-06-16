@@ -1,24 +1,19 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { THREAD_ID } from "@/core/store";
-import { motion } from "framer-motion";
-import { useCallback, useMemo } from "react";
+import { useReplay } from '@/core/replay';
+import { THREAD_ID } from '@/core/store';
+import { motion } from 'framer-motion';
+import { useCallback, useMemo } from 'react';
 
-import { Markdown } from "~/components/deer-flow/markdown";
-import { Button } from "~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import type { Message, Option } from "~/core/messages";
-import { parseJSON } from "~/core/utils";
-import { cn } from "~/lib/utils";
+import { Markdown } from '~/components/deer-flow/markdown';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import type { Message, Option } from '~/core/messages';
+import { parseJSON } from '~/core/utils';
+import { cn } from '~/lib/utils';
 
-const GREETINGS = ["Cool", "Sounds great", "Looks good", "Great", "Awesome"];
+const GREETINGS = ['Cool', 'Sounds great', 'Looks good', 'Great', 'Awesome'];
 
 export function PlanCard({
   className,
@@ -26,16 +21,13 @@ export function PlanCard({
   interruptMessage,
   onFeedback,
   waitForFeedback,
-  onSendMessage,
+  onSendMessage
 }: {
   className?: string;
   message: Message;
   interruptMessage?: Message | null;
   onFeedback?: (feedback: { option: Option }) => void;
-  onSendMessage?: (
-    message: string,
-    options?: { interruptFeedback?: string },
-  ) => void;
+  onSendMessage?: (message: string, options?: { interruptFeedback?: string }) => void;
   waitForFeedback?: boolean;
 }) {
   const plan = useMemo<{
@@ -43,38 +35,40 @@ export function PlanCard({
     thought?: string;
     steps?: { title?: string; description?: string }[];
   }>(() => {
-    return parseJSON(message.content ?? "", {});
+    return parseJSON(message.content ?? '', {});
   }, [message.content]);
-  
+
   const handleAccept = useCallback(async () => {
     if (onSendMessage) {
       onSendMessage(
         `${GREETINGS[Math.floor(Math.random() * GREETINGS.length)]}! ${Math.random() > 0.5 ? "Let's get started." : "Let's start."}`,
         {
-          interruptFeedback: "accepted",
-        },
+          interruptFeedback: 'accepted'
+        }
       );
     }
   }, [onSendMessage]);
-  
+  const { replayId, isReplay } = useReplay();
+
   // console.log('interruptMessage', interruptMessage);
   // console.log('message', message);
-  
+
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <CardHeader>
         <CardTitle>
           <Markdown animated>
             {`### ${
-              plan.title !== undefined && plan.title !== ""
-                ? plan.title
-                : "Deep Research"
-            }\n(ID: ${THREAD_ID})`}
+              plan.title !== undefined && plan.title !== '' ? plan.title : 'Deep Research'
+            }${`\n(ID: ${isReplay ? replayId : THREAD_ID})`}`}
           </Markdown>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Markdown className="opacity-80" animated>
+        <Markdown
+          className="opacity-80"
+          animated
+        >
           {plan.thought}
         </Markdown>
         {plan.steps && (
@@ -103,14 +97,14 @@ export function PlanCard({
             {interruptMessage?.options.map((option) => (
               <Button
                 key={option.value}
-                variant={option.value === "accepted" ? "default" : "outline"}
+                variant={option.value === 'accepted' ? 'default' : 'outline'}
                 disabled={!waitForFeedback}
                 onClick={() => {
-                  if (option.value === "accepted") {
+                  if (option.value === 'accepted') {
                     handleAccept();
                   } else {
                     onFeedback?.({
-                      option,
+                      option
                     });
                   }
                 }}
@@ -124,4 +118,3 @@ export function PlanCard({
     </Card>
   );
 }
- 

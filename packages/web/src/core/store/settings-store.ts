@@ -52,11 +52,24 @@ export const loadSettings = () => {
   const json = localStorage.getItem(SETTINGS_KEY);
   if (json) {
     const settings = JSON.parse(json);
+    
+    // 确保general设置有默认值
     for (const key in DEFAULT_SETTINGS.general) {
       if (!(key in settings.general)) {
         settings.general[key as keyof SettingsState['general']] =
           DEFAULT_SETTINGS.general[key as keyof SettingsState['general']];
       }
+    }
+
+    // 确保MCP工具有enabled字段（兼容旧数据）
+    if (settings.mcp && settings.mcp.servers) {
+      settings.mcp.servers = settings.mcp.servers.map((server: MCPServerMetadata) => ({
+        ...server,
+        tools: server.tools.map(tool => ({
+          ...tool,
+          enabled: tool.enabled ?? true // 如果没有enabled字段，默认为true
+        }))
+      }));
     }
 
     try {
@@ -90,7 +103,7 @@ export const getChatStreamSettings = () => {
   if (mcpServers.length > 0) {
     mcp_settings = {
       servers: mcpServers.reduce((acc, cur) => {
-        const { transport, env } = cur;
+        const { transport, url, name } = cur;
         let server: SimpleMCPServerMetadata;
         // if (transport === "stdio") {
         //   server = {
@@ -102,17 +115,21 @@ export const getChatStreamSettings = () => {
         //   };
         // } else {
         server = {
-          name: cur.name,
+          name,
           transport,
           // env,
-          url: cur.url
+          url
         };
         // }
+        
+        // 只包含启用的工具
+        const enabledTools = cur.tools.filter(tool => tool.enabled);
+        
         return {
           ...acc,
-          [cur.name]: {
+          [name]: {
             ...server,
-            enabled_tools: cur.tools.map((tool) => tool.name),
+            enabled_tools: enabledTools.map((tool) => tool.name),
             add_to_agents: ['researcher']
           }
         };

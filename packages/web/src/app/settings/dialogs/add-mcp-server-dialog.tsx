@@ -19,6 +19,7 @@ import { queryMCPServerMetadata } from '~/core/api';
 import {
   MCPConfigSchema,
   type MCPServerMetadata,
+  type MCPToolMetadata,
   type SimpleMCPServerMetadata,
   type SimpleSSEMCPServerMetadata,
   // type SimpleStdioMCPServerMetadata
@@ -103,11 +104,17 @@ export function AddMCPServerDialog({ onAdd }: { onAdd?: (servers: MCPServerMetad
       for (const server of addingServers) {
         processingServer = server.name;
         const metadata = await queryMCPServerMetadata(server);
-        results.push({
+        // 确保所有工具默认为启用状态
+        const serverWithEnabledTools = {
           ...metadata,
           name: server.name,
-          enabled: true
-        });
+          enabled: true,
+          tools: metadata.tools.map((tool: MCPToolMetadata) => ({
+            ...tool,
+            enabled: true
+          }))
+        };
+        results.push(serverWithEnabledTools);
       }
       if (results.length > 0) {
         onAdd?.(results);

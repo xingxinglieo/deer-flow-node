@@ -58,6 +58,25 @@ export const MCPTab: Tab = ({ settings, onChange }) => {
     },
     [onChange, settings],
   );
+
+  const handleToggleTool = useCallback(
+    (serverName: string, toolName: string, enabled: boolean) => {
+      const merged = settings.mcp.servers.map((server) =>
+        server.name === serverName
+          ? {
+              ...server,
+              tools: server.tools.map((tool) =>
+                tool.name === toolName ? { ...tool, enabled } : tool,
+              ),
+            }
+          : server,
+      );
+      setServers(merged);
+      onChange({ ...settings, mcp: { ...settings.mcp, servers: merged } });
+    },
+    [onChange, settings],
+  );
+
   const animationProps = {
     initial: { backgroundColor: "gray" },
     animate: { backgroundColor: "transparent" },
@@ -76,13 +95,14 @@ export const MCPTab: Tab = ({ settings, onChange }) => {
         <div className="text-muted-foreground markdown text-sm">
           The Model Context Protocol boosts DeerFlow by integrating external
           tools for tasks like private domain searches, web browsing, food
-          ordering, and more. Click here to
+          ordering, and more. Click on individual tool buttons to enable/disable 
+          specific tools. Only enabled tools will be available during research.{" "}
           <a
             className="ml-1"
             target="_blank"
             href="https://modelcontextprotocol.io/"
           >
-            learn more about MCP.
+            Learn more about MCP.
           </a>
         </div>
       </header>
@@ -159,12 +179,22 @@ export const MCPTab: Tab = ({ settings, onChange }) => {
                   >
                     <PencilRuler size={16} />
                     {server.tools.map((tool) => (
-                      <li
-                        key={tool.name}
-                        className="text-muted-foreground border-muted-foreground w-fit rounded-md border px-2"
-                      >
-                        <Tooltip key={tool.name} title={tool.description}>
-                          <div className="w-fit text-sm">{tool.name}</div>
+                      <li key={tool.name}>
+                        <Tooltip title={tool.description}>
+                          <button
+                            className={cn(
+                              "w-fit rounded-md border px-2 py-1 text-sm transition-all duration-200 hover:scale-105",
+                              tool.enabled
+                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                : "text-muted-foreground border-muted-foreground bg-transparent hover:border-primary/50"
+                            )}
+                            onClick={() =>
+                              handleToggleTool(server.name, tool.name, !tool.enabled)
+                            }
+                            disabled={!server.enabled}
+                          >
+                            {tool.name}
+                          </button>
                         </Tooltip>
                       </li>
                     ))}
@@ -190,6 +220,11 @@ function mergeServers(
   for (const addedServer of added) {
     addedServer.createdAt = Date.now();
     addedServer.updatedAt = Date.now();
+    // 确保新添加的工具默认启用
+    addedServer.tools = addedServer.tools.map((tool) => ({
+      ...tool,
+      enabled: tool.enabled ?? true,
+    }));
     serverMap.set(addedServer.name, addedServer);
   }
 

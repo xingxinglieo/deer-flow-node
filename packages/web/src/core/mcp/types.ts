@@ -4,6 +4,7 @@
 export interface MCPToolMetadata {
   name: string;
   description: string;
+  enabled: boolean;
   inputSchema?: Record<string, unknown>;
 }
 
@@ -11,7 +12,7 @@ export interface GenericMCPServerMetadata<T extends string> {
   name: string;
   transport: T;
   enabled: boolean;
-  env?: Record<string, string>;
+  // env?: Record<string, string>;
   tools: MCPToolMetadata[];
   createdAt: number;
   updatedAt: number;
