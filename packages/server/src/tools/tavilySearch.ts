@@ -7,11 +7,17 @@ import { tavily, TavilySearchResponse } from '@tavily/core';
 import { Configuration } from '../config/configuration';
 import { RunnableConfig } from '@langchain/core/runnables';
 
-const apiKey = process.env.TAVILY_API_KEY;
 
-if (!apiKey) {
+if (!process.env.TAVILY_API_KEY) {
   throw new Error('Tavily API key is required. Set TAVILY_API_KEY environment variable.');
 }
+const apiKeys = process.env.TAVILY_API_KEY.split(',');
+let currentIndex = 0;
+const getApiKey = () => {
+  const key = apiKeys[currentIndex];
+  currentIndex = (currentIndex + 1) % apiKeys.length;
+  return key;
+};
 
 /**
  * Tavily AI 搜索工具
@@ -29,7 +35,7 @@ export const tavilySearch = tool(
     config: RunnableConfig
   ) => {
     const configurable = Configuration.fromRunnableConfig(config);
-    const client = tavily({ apiKey });
+    const client = tavily({ apiKey: getApiKey() });
 
     try {
       console.info(`Executing Tavily search for query: "${query}"`);
