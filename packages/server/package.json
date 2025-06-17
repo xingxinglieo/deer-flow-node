@@ -30,7 +30,6 @@
     "@types/jsdom": "^21.1.7",
     "@types/socket.io": "^3.0.2",
     "axios": "^1.9.0",
-    "bifrost-proxy": "^1.4.0",
     "cheerio": "^1.0.0",
     "danfojs-node": "^1.2.0",
     "dayjs": "^1.11.13",

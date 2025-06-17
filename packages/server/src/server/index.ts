@@ -27,10 +27,6 @@ fastify.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: '*',
   exposedHeaders: '*'
-  // origin: [
-  //   'https://hoppscotch.io',
-  //   process.env.CORS_ORIGIN || 'http://localhost:3000',
-  // ]
 });
 
 // 注册聊天路由
@@ -61,7 +57,6 @@ const start = async () => {
       console.log('\n🔧 Current Configuration:');
       console.log(`   Host: ${host}`);
       console.log(`   Port: ${port}`);
-      console.log(`   CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
       console.log(`   Node Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`   OpenAI API Key: ${process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Not set'}`);
     }
