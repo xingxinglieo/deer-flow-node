@@ -1,13 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": [
-      "node",
-      "jest"
-    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -15,7 +12,8 @@
       "~/*": [
         "./src/*"
       ]
-    }
+    },
+    "baseUrl": "./"
   },
   "include": [
     "src/**/*"

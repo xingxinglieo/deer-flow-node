@@ -1,7 +1,0 @@
-
-> @deerflow/server@0.1.0 dev
-> tsx watch src/index.ts
-
-{"level":30,"time":1748895685016,"pid":16409,"hostname":"D6MPV9YD4J","msg":"Server listening at http://[::1]:8000"}
-{"level":30,"time":1748895685017,"pid":16409,"hostname":"D6MPV9YD4J","msg":"Server listening at http://127.0.0.1:8000"}
-🦌 DeerFlow Server is running on http://localhost:8000
