@@ -42,7 +42,7 @@ export async function* chatStream(
   if (
     // env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY ||
     // location.search.includes("mock") ||
-    location.search.includes('replay=')
+    location.search.includes('replay')
   ) {
     return yield* chatReplayStream(userMessage, params, options);
   }
@@ -130,7 +130,7 @@ async function* chatReplayStream(
     replayFilePath = `/.replay/${replayId}.txt`;
   } else {
     // Fallback to a default replay
-    replayFilePath = `/.replay/hUoBy9LSytLvOpFFsulPX.txt`;
+    replayFilePath = `/hUoBy9LSytLvOpFFsulPX.txt`;
   }
   // }
   const text = await fetchReplay(replayFilePath, {

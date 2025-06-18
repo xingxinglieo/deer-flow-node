@@ -29,8 +29,14 @@ deer-flow-node/
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/xingxinglieo/deer-flow-node
 cd deer-flow-node
+
+# Node.js >= 18.0.0
+nvm use 20 
+
+# 锁定 pnpm 版本
+corepack enable
 
 # 安装所有依赖
 pnpm i
@@ -51,7 +57,7 @@ packages/server/.env
 
 # DEBUG=true
 
-# OpenAI 配置，已测试服务商阿里云千问、豆包、硅基流动
+# OpenAI 配置，已测试服务商 阿里云千问、豆包、硅基流动
 # OPENAI_API_KEY=xxx
 # OPENAI_BASE_URL=xxx
 # OPENAI_MODEL=xxx
@@ -86,10 +92,6 @@ PORT=3000
 ```bash
 # 同时启动服务端和前端 (推荐)
 pnpm dev
-
-# 或者分别启动
-pnpm --filter @deerflow/server dev    # 启动后端开发服务器
-pnpm --filter @deerflow/web dev       # 启动前端开发服务器
 ```
 
 ### 构建和部署
@@ -100,11 +102,6 @@ pnpm build
 
 # 生产环境启动 (使用 Node.js 直接运行)
 pnpm start
-
-# 先构建后端
-pnpm --filter @deerflow/server build
-# 使用 PM2 启动
-pnpm --filter @deerflow/server start
 ```
 
 ## 🏗️ 技术栈
@@ -113,16 +110,16 @@ pnpm --filter @deerflow/server start
 - **运行时**: Node.js 18+ + TypeScript
 - **Web 框架**: Fastify + WebSocket
 - **AI 集成**: LangChain + LangGraph + OpenAI
-- **爬虫工具**: Puppeteer + Cheerio + Axios
-- **数据处理**: danfojs-node + mathjs
+- **爬虫工具**: Jina
 - **文档处理**: Mozilla Readability + Turndown + markdown-it
-- **安全沙箱**: vm2
+- **代码运行**: js + vm2
+- **数据处理**: danfojs-node + mathjs
 - **日志**: Winston
 - **构建工具**: TypeScript Compiler + tsc-alias
 - **开发工具**: tsx (开发服务器) + Jest (测试) + dotenvx (环境变量)
 
 ### 前端 (`@deerflow/web`)
-- **框架**: Next.js 14 + React 18 + TypeScript
+- **框架**: Next.js 15 + React 19 + TypeScript
 - **样式**: Tailwind CSS + CSS Modules
 - **UI 组件**: Radix UI + Custom Components
 - **状态管理**: Zustand + React Context
@@ -156,15 +153,18 @@ pnpm --filter @deerflow/server start
 - ✅ **设置面板**：系统配置管理
 
 #### **工具集成**
-- ✅ **网页爬虫**：JINA 爬去网页
+- ✅ **网页爬虫**：JINA 爬取网页
 - ✅ **AI 搜索**：Tavily API 集成
 - ✅ **代码执行**：安全的 JS 代码沙箱环境
-- ✅ **MCP 工具加载**：加载 MCP 工具，仅支持 SSE
+- ✅ **MCP 支持**：支持加载 MCP，仅支持 SSE
 
 #### **回放**
 - ✅ **回放录制**：自动录制回放，仅开发模式可用
 
 ### 📋 待开发功能
+
+#### **前端界面**
+- ⏳ **聊天界面**：思考模式支持
 
 #### **RAG (检索增强生成)**
 - 🚧 **文档检索**：客户端暂不支持
