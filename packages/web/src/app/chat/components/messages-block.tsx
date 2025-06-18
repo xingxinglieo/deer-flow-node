@@ -165,7 +165,7 @@ export function MessagesBlock({ className }: { className?: string }) {
                 * This site is for demo purposes only. If you want to try your own question, please{' '}
                 <a
                   className="underline"
-                  href="https://github.com/bytedance/deer-flow"
+                  href="https://github.com/xingxinglieo/deer-flow-node"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

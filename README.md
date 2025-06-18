@@ -1,6 +1,8 @@
 # 🦌 DeerFlow Node.js
 
-Node.js 版本的 DeerFlow - 深度探索和高效研究流程框架
+Node.js 版本的 DeerFlow - 深度探索和高效研究流程框架，原 [Python 版本](https://github.com/bytedance/deer-flow)
+
+体检地址：http://1.94.188.202/chat
 
 ## 📦 Monorepo 结构
 
@@ -21,7 +23,7 @@ deer-flow-node/
 ### 前置要求
 
 - Node.js >= 18.0.0
-- pnpm >= 8.0.0
+- pnpm 8.9.2(建议使用 corepack enable 锁定版本)
 
 ### 安装依赖
 
@@ -31,18 +33,53 @@ git clone <your-repo-url>
 cd deer-flow-node
 
 # 安装所有依赖
-pnpm install
+pnpm i
 ```
 
 ### 环境配置
 
-```bash
-# 复制环境变量文件
-cp env.example .env
+编辑 .env 文件，填入你的 API 密钥，必要配置 ：
+1. 模型 OPENAI_API_KEY,OPENAI_BASE_URL,OPENAI_MODEL
+2. AI 搜索 TAVILY_API_KEY
 
-# 编辑 .env 文件，填入你的 API 密钥
-# 至少需要配置 OPENAI_API_KEY 和一个搜索引擎 API
+packages/server/.env
 ```
+# 服务端配置
+# SERVER_PORT=8000
+# SERVER_HOST=localhost
+# NODE_ENV=development
+
+# DEBUG=true
+
+# OpenAI 配置，已测试服务商阿里云千问、豆包、硅基流动
+# OPENAI_API_KEY=xxx
+# OPENAI_BASE_URL=xxx
+# OPENAI_MODEL=xxx
+
+# Web 抓取配置，仅支持 Tavily，支持多个 Tavily Key 逗号分割
+# Tavily Search API
+# TAVILY_API_KEY=tvly-dev-abcd,tvly-dev-efgg
+
+# JINA_API_KEY=your_jina_api_key_here
+# USER_AGENT=DeerFlow/1.0
+
+# langsmith
+# LANGSMITH_TRACING=true
+# LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+# LANGSMITH_API_KEY=xxx
+# LANGSMITH_PROJECT="xxx"
+
+```
+
+packages/web/.env
+```
+# 前端请求接口 BASE_URL，与 server 一致
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+# 端口配置
+PORT=3000
+```
+
+
 
 ### 开发模式
 
@@ -51,102 +88,93 @@ cp env.example .env
 pnpm dev
 
 # 或者分别启动
-pnpm dev:server  # 启动后端服务 (http://localhost:8000)
-pnpm dev:web     # 启动前端服务 (http://localhost:3000)
+pnpm --filter @deerflow/server dev    # 启动后端开发服务器
+pnpm --filter @deerflow/web dev       # 启动前端开发服务器
 ```
 
-### 构建项目
+### 构建和部署
 
 ```bash
 # 构建所有包
 pnpm build
 
-# 生产环境启动
+# 生产环境启动 (使用 Node.js 直接运行)
 pnpm start
-```
 
-## 📋 可用脚本
-
-### 根级别脚本
-
-- `pnpm dev` - 并行启动所有开发服务器
-- `pnpm build` - 构建所有包
-- `pnpm test` - 运行所有测试
-- `pnpm lint` - 检查代码风格
-- `pnpm format` - 格式化代码
-
-### 包级别脚本
-
-```bash
-# 只运行服务端
-pnpm --filter server dev
-pnpm --filter server build
-pnpm --filter server test
-
-# 只运行前端
-pnpm --filter web dev
-pnpm --filter web build
-pnpm --filter web lint
+# 先构建后端
+pnpm --filter @deerflow/server build
+# 使用 PM2 启动
+pnpm --filter @deerflow/server start
 ```
 
 ## 🏗️ 技术栈
 
 ### 服务端 (`@deerflow/server`)
-- **运行时**: Node.js + TypeScript
-- **Web 框架**: Fastify
-- **AI 集成**: OpenAI API
-- **工具**: Axios, Cheerio, Puppeteer
-- **开发工具**: tsx, Jest
+- **运行时**: Node.js 18+ + TypeScript
+- **Web 框架**: Fastify + WebSocket
+- **AI 集成**: LangChain + LangGraph + OpenAI
+- **爬虫工具**: Puppeteer + Cheerio + Axios
+- **数据处理**: danfojs-node + mathjs
+- **文档处理**: Mozilla Readability + Turndown + markdown-it
+- **安全沙箱**: vm2
+- **日志**: Winston
+- **构建工具**: TypeScript Compiler + tsc-alias
+- **开发工具**: tsx (开发服务器) + Jest (测试) + dotenvx (环境变量)
 
 ### 前端 (`@deerflow/web`)
-- **框架**: Next.js 14 + React 18
-- **样式**: Tailwind CSS
-- **组件**: Radix UI
-- **状态管理**: Zustand
-- **动画**: Framer Motion
-- **实时通信**: Socket.IO
+- **框架**: Next.js 14 + React 18 + TypeScript
+- **样式**: Tailwind CSS + CSS Modules
+- **UI 组件**: Radix UI + Custom Components
+- **状态管理**: Zustand + React Context
+- **动画**: Framer Motion + Magic UI
+- **编辑器**: ProseMirror (富文本编辑)
+- **实时通信**: Socket.IO Client
+- **工具库**: clsx + cn (样式工具)
 
-## 🔧 开发指南
 
-### 添加新的依赖
+## 🎯 功能模块
 
-```bash
-# 为特定包添加依赖
-pnpm --filter server add express
-pnpm --filter web add @types/react
+### ✅ 已复刻功能
 
-# 为根项目添加开发依赖
-pnpm add -w -D prettier
-```
+#### **核心工作流引擎**
+- ✅ **LangGraph 状态管理**：多智能体协作状态流转
+- ✅ **智能体节点系统**：模块化的智能体节点架构
+- ✅ **条件路由逻辑**：基于状态的智能路由决策
 
-### 包之间的依赖
+#### **智能体角色**
+- ✅ **协调员 (Coordinator)**：任务分发和流程控制
+- ✅ **规划师 (Planner)**：研究计划制定和步骤拆解
+- ✅ **报告员 (Reporter)**：最终报告生成和格式化
+- ✅ **研究团队 (Research Team)**：任务分配和协作管理
+- ✅ **研究员 (Researcher)**：信息收集和分析
+- ✅ **程序员 (Coder)**：代码执行和数据处理
+- ✅ **人工反馈 (Human Feedback)**：交互式用户反馈
+- ✅ **背景调研员 (Background Investigator)**：背景信息收集
 
-```bash
-# 在 web 包中引用 server 包
-pnpm --filter web add @deerflow/server@workspace:*
-```
+#### **前端界面**
+- ✅ **聊天界面**：流式对话交互
+- ✅ **设置面板**：系统配置管理
 
-### 代码风格
+#### **工具集成**
+- ✅ **网页爬虫**：JINA 爬去网页
+- ✅ **AI 搜索**：Tavily API 集成
+- ✅ **代码执行**：安全的 JS 代码沙箱环境
+- ✅ **MCP 工具加载**：加载 MCP 工具，仅支持 SSE
 
-- 使用 ESLint + Prettier 进行代码格式化
-- 遵循 TypeScript 严格模式
-- 使用 conventional commits 规范
+#### **回放**
+- ✅ **回放录制**：自动录制回放，仅开发模式可用
 
-## 📚 下一步计划
+### 📋 待开发功能
 
-1. ✅ **阶段 1**: 基础架构搭建 (当前)
-2. 🔄 **阶段 2**: LLM 集成与基础代理
-3. 📋 **阶段 3**: 工具系统实现
-4. 🔀 **阶段 4**: 工作流引擎
-5. 🌐 **阶段 5**: Web UI 与实时通信
+#### **RAG (检索增强生成)**
+- 🚧 **文档检索**：客户端暂不支持
 
-## 🤝 贡献指南
+#### **多媒体生成**
+- ⏳ **PPT 生成**：自动化演示文稿制作
+- ⏳ **播客生成**：文本转语音播客制作
+- ⏳ **文档优化**：智能文档润色和改进
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建 Pull Request
+
 
 ## 📄 许可证
 
