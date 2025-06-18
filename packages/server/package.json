@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && tsc-alias && node fix-imports.js",
+    "build": "tsc && tsc-alias && node fix-imports.js && cp -r src/prompts dist/",
     "dev": "dotenvx run -- tsx watch src/index.ts",
     "start": "dotenvx run -- pm2 kill && pm2 start dist/index.js",
     "test": "jest",
