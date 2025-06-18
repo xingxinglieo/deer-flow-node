@@ -7,15 +7,19 @@ import { mcpRoutes } from '../routes/mcp/index';
 // import { socketRoutes } from '../routes/mcp/socket';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { errorHandler } from './error';
+import { threadLoggerPlugin } from '../utils/logger';
+import { getLoggerConfig } from '../config/logger';
 
 const fastify = Fastify({
-  logger: true
+  logger: getLoggerConfig()
 });
 
 // Add schema validator and serializer
 fastify.setValidatorCompiler(validatorCompiler);
 fastify.setSerializerCompiler(serializerCompiler);
 
+// 注册线程日志插件
+fastify.register(threadLoggerPlugin);
 // 注册错误处理器
 fastify.register(errorHandler);
 // 注册 WebSocket 插件

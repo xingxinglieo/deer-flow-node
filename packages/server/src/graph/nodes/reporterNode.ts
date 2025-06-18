@@ -4,10 +4,13 @@ import { State } from '../types';
 import { AGENT_LLM_MAP } from '~/config/agents';
 import { getLLMByType } from '~/llm/index';
 import { applyPromptTemplate } from '~/prompts/template';
+import { logger } from '@/utils/logger';
+import { RunnableConfig } from '@langchain/core/runnables';
 
 // 报告器节点
-export const reporterNode = async (state: State) => {
-  console.info('Reporter write final report');
+export const reporterNode = async (state: State, config: RunnableConfig) => {
+  const configurable = Configuration.fromRunnableConfig(config);
+  logger.info(configurable.thread_id, 'Reporter Node: Running', state);
   const currentPlan = state.current_plan;
   const input = {
     ...state,
@@ -17,7 +20,7 @@ export const reporterNode = async (state: State) => {
       )
     ]
   };
-  const invokeMessages = await applyPromptTemplate('reporter', input);
+  const invokeMessages = applyPromptTemplate('reporter', input);
   const observations = state.observations;
 
   // Add a reminder about the new report format, citation style, and table usage
@@ -37,10 +40,12 @@ export const reporterNode = async (state: State) => {
       })
     );
   }
-  console.debug(`Current invoke messages: ${invokeMessages}`);
+  logger.info(configurable.thread_id, 'Reporter Node: Current invoke messages', invokeMessages);
   const response = await getLLMByType(AGENT_LLM_MAP['reporter']!).invoke(invokeMessages);
   const responseContent = response.content;
-  console.info(`reporter response: ${responseContent}`);
+  logger.info(configurable.thread_id, 'Reporter Node: Final report', {
+    final_report: responseContent
+  });
 
   return { final_report: responseContent };
 };

@@ -18,11 +18,13 @@ const RAGResourceRequestSchema = z.object({
  * RAG 资源响应模式
  */
 const RAGResourcesResponseSchema = z.object({
-  resources: z.array(z.object({
-    uri: z.string(),
-    title: z.string(),
-    description: z.string().optional()
-  }))
+  resources: z.array(
+    z.object({
+      uri: z.string(),
+      title: z.string(),
+      description: z.string().optional()
+    })
+  )
 });
 
 type RAGResourceRequest = z.infer<typeof RAGResourceRequestSchema>;
@@ -33,8 +35,8 @@ type RAGResourcesResponse = z.infer<typeof RAGResourcesResponseSchema>;
  */
 export async function ragRoutes(fastify: FastifyInstance) {
   // GET /api/rag/resources - 获取 RAG 资源列表
-  fastify.withTypeProvider<ZodTypeProvider>().get<{ 
-    Querystring: RAGResourceRequest 
+  fastify.withTypeProvider<ZodTypeProvider>().get<{
+    Querystring: RAGResourceRequest;
   }>(
     '/api/rag/resources',
     {
@@ -55,9 +57,9 @@ export async function ragRoutes(fastify: FastifyInstance) {
         }
 
         const resources = await retriever.listResources(query);
-        
+
         const response: RAGResourcesResponse = {
-          resources: resources.map(resource => ({
+          resources: resources.map((resource) => ({
             uri: resource.uri,
             title: resource.title,
             description: resource.description || ''
@@ -74,4 +76,4 @@ export async function ragRoutes(fastify: FastifyInstance) {
       }
     }
   );
-} 
+}

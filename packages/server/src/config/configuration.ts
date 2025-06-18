@@ -20,6 +20,8 @@ export class Configuration {
   /** Maximum number of search results */
   public max_search_results: number = 3;
 
+  public thread_id: string = '';
+
   /** MCP settings, including dynamic loaded tools */
   public mcp_settings: {
     servers?: Record<
@@ -44,18 +46,18 @@ export class Configuration {
 
     // Map environment variables and configurable values to field names
     const fieldMappings = [
-      { camelCase: 'resources', envVar: 'RESOURCES' },
-      { camelCase: 'max_plan_iterations', envVar: 'MAX_PLAN_ITERATIONS' },
-      { camelCase: 'max_step_num', envVar: 'MAX_STEP_NUM' },
-      { camelCase: 'max_search_results', envVar: 'MAX_SEARCH_RESULTS' },
-      { camelCase: 'mcp_settings', envVar: 'MCP_SETTINGS' }
+      { camelCase: 'resources' },
+      { camelCase: 'max_plan_iterations' },
+      { camelCase: 'max_step_num' },
+      { camelCase: 'max_search_results' },
+      { camelCase: 'mcp_settings' }
     ];
 
     const values: Partial<Configuration> = {};
 
-    fieldMappings.forEach(({ camelCase, envVar }) => {
+    fieldMappings.forEach(({ camelCase }) => {
       // Get value from environment variable or configurable
-      let value = process.env[envVar] || configurable[camelCase];
+      let value = configurable[camelCase];
 
       // Parse JSON strings for complex types
       if (typeof value === 'string') {
@@ -78,7 +80,6 @@ export class Configuration {
 
     return new Configuration(values);
   }
-
   /**
    * Convert this configuration to a plain object for use in graph configurable
    */
@@ -88,7 +89,8 @@ export class Configuration {
       max_plan_iterations: this.max_plan_iterations,
       max_step_num: this.max_step_num,
       max_search_results: this.max_search_results,
-      mcp_settings: this.mcp_settings
+      mcp_settings: this.mcp_settings,
+      thread_id: this.thread_id
     };
   }
 }

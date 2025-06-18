@@ -9,6 +9,7 @@ import { AGENT_LLM_MAP } from '@/config/agents';
 import { getLLMByType } from '@/llm/index';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import dayjs from 'dayjs';
+import { logger } from '@/utils/logger';
 
 export async function setupAndExecuteAgentStep(
   state: State,
@@ -61,6 +62,10 @@ export async function setupAndExecuteAgentStep(
       }
     }
   }
+  logger.info(configurable.thread_id, 'Setup and execute agent step', {
+    agentType,
+    loadedTools
+  });
   // Use default tools if no MCP servers are configured
   const agent = createAgent(agentType, agentType, loadedTools);
   return await executeAgentStep(state, agent, agentType, config).finally(() => {
@@ -89,6 +94,7 @@ async function executeAgentStep(
   // Helper function to execute a step using the specified agent
   const currentPlan = state.current_plan;
   const observations = state.observations || [];
+  const configurable = Configuration.fromRunnableConfig(config);
 
   // Find the first unexecuted step using functional programming
   const allSteps = currentPlan?.steps || [];
@@ -96,11 +102,14 @@ async function executeAgentStep(
   const completedSteps = allSteps.filter((step) => step.execution_res);
 
   if (!currentStep) {
-    console.warn('No unexecuted step found');
+    logger.info(configurable.thread_id, 'No unexecuted step found, goto research_team node.');
     return new Command({ goto: 'research_team' });
   }
 
-  console.info(`Executing step: ${currentStep.title}, agent: ${agentName}`);
+  logger.info(configurable.thread_id, 'Executing step', {
+    step: currentStep.title,
+    agent: agentName
+  });
 
   // Format completed steps information
   const completedStepsInfo =
@@ -149,7 +158,7 @@ async function executeAgentStep(
   const defaultRecursionLimit = 25;
   const recursionLimit = parseInt(process.env.AGENT_RECURSION_LIMIT || defaultRecursionLimit.toString());
 
-  console.info(`Agent input: ${JSON.stringify(agentInput)}`);
+  logger.info(configurable.thread_id, `Agent input: ${JSON.stringify(agentInput)}`);
 
   // 配置 agent invoke 的参数，包括 thread_id 用于状态管理
   const thread_id = `agent-${agentName}-${dayjs().format('YYYY-MM-DD HH:mm:ss')}`;
@@ -166,7 +175,7 @@ async function executeAgentStep(
       }
     )
     .catch(async (e: any) => {
-      console.error('Agent execution failed:', e);
+      logger.error(configurable.thread_id, 'Agent execution failed:', e);
       const states = await agent.getState({
         configurable: {
           thread_id
@@ -184,6 +193,7 @@ async function executeAgentStep(
   Provide the best recommendations based on the available information.`
         })
       ];
+      logger.info(configurable.thread_id, 'Agent execution failed, try to summarize the information.');
       const response = await getLLMByType(AGENT_LLM_MAP[agentName]!).invoke(messages);
       return {
         messages: [...messages, response]
@@ -192,11 +202,14 @@ async function executeAgentStep(
 
   // Process the result
   const responseContent = result.messages[result.messages.length - 1].content;
-  console.debug(`${agentName.charAt(0).toUpperCase() + agentName.slice(1)} full response: ${responseContent}`);
+  logger.info(configurable.thread_id, `Agent ${agentName} full response: ${responseContent}`);
 
   // Update the step with the execution result
   currentStep.execution_res = responseContent;
-  console.info(`Step '${currentStep.title}' execution completed by ${agentName}`);
+  logger.info(
+    configurable.thread_id,
+    `Step '${currentStep.title}' execution completed by agent ${agentName}, goto research team node`
+  );
 
   return new Command({
     update: {

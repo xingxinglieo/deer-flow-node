@@ -1,4 +1,3 @@
-# Python-generated files
 __pycache__/
 *.py[oc]
 build/
@@ -9,6 +8,7 @@ wheels/
 agent_history.gif
 static/browser_history/*.gif
 tsconfig.tsbuildinfo
+logs
 
 # Virtual environments
 .venv

@@ -7,12 +7,15 @@ import { AGENT_LLM_MAP } from '~/config/agents';
 import { getLLMByType } from '~/llm/index';
 import { applyPromptTemplate } from '~/prompts/template';
 import { repairJsonOutput } from '~/utils/json';
+import { logger } from '@/utils/logger';
 // 规划器节点
 export async function plannerNode(state: State, config?: RunnableConfig): Promise<Command> {
-  console.log('Planner generating full plan');
-
   // const planIterations = state.planIterations || 0;
   const configurable = Configuration.fromRunnableConfig(config);
+  logger.info(configurable.thread_id, 'Planner Node: Running', {
+    state,
+    configurable
+  });
   const messages = applyPromptTemplate('planner', state, configurable);
   const plan_iterations = state.plan_iterations || 0;
 
@@ -25,16 +28,22 @@ export async function plannerNode(state: State, config?: RunnableConfig): Promis
   }
   // 如果计划迭代次数超过最大值，返回报告器节点
   if (plan_iterations >= configurable.max_plan_iterations) {
+    logger.info(
+      configurable.thread_id,
+      'Planner Node: Plan iterations exceed max plan iterations, goto reporter node.'
+    );
     return new Command({ goto: 'reporter' });
   }
 
   const llm = getLLMByType(AGENT_LLM_MAP['planner']!).withStructuredOutput(PlanSchema, {
-    method: 'jsonSchema',
+    method: 'jsonSchema'
   });
-
+  logger.info(configurable.thread_id, 'Planner Node: llm generate plan');
   const current_plan = await llm.invoke(messages).catch((e) => {
+    logger.error(configurable.thread_id, 'Planner Node: llm generate plan error:', e);
     // 修复 json
     if (e.lc_error_code === 'OUTPUT_PARSING_FAILURE') {
+      logger.info(configurable.thread_id, 'Planner Node: llm generate plan output parsing failure, repair json output');
       const repairedContent = repairJsonOutput(e.llmOutput);
       const output = JSON.parse(repairedContent) as Plan;
       const parsed = PlanSchema.safeParse(output);
@@ -65,8 +74,10 @@ export async function plannerNode(state: State, config?: RunnableConfig): Promis
     }
     throw e;
   });
+  logger.info(configurable.thread_id, 'Planner Node: llm generate plan success:', current_plan);
+
   if (current_plan.has_enough_context) {
-    console.info('Planner response has enough context.');
+    logger.info(configurable.thread_id, 'Planner Node: llm generate plan has enough context, goto reporter node.');
     return new Command({
       update: {
         messages: [new AIMessage({ content: JSON.stringify(current_plan), name: 'planner' })],
@@ -75,7 +86,10 @@ export async function plannerNode(state: State, config?: RunnableConfig): Promis
       goto: 'reporter'
     });
   }
-  console.info('Planner response has not enough context, goto human feedback node.');
+  logger.info(
+    configurable.thread_id,
+    'Planner Node: llm generate plan has not enough context, goto human feedback node.'
+  );
   return new Command({
     update: {
       messages: [new AIMessage({ content: JSON.stringify(current_plan), name: 'planner' })],

@@ -23,7 +23,7 @@ deer-flow-node/
 ### 前置要求
 
 - Node.js >= 18.0.0
-- pnpm 8.9.2(建议使用 corepack enable 锁定版本)
+- pnpm
 
 ### 安装依赖
 

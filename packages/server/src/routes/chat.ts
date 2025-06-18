@@ -1,12 +1,14 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
-import { graph } from '../graph/builder';
+import { graph } from '~/graph/builder';
 import { isAIMessageChunk } from '@langchain/core/messages';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { ReadableStream } from 'stream/web';
 import { Command } from '@langchain/langgraph';
-import { replayRecorder } from '../utils/replay-recorder';
+import { replayRecorder } from '~/utils/replay-recorder';
+import { isDevelopment } from '~/utils';
+import { logger } from '@/utils/logger';
 
 /**
  * 生成唯一 ID
@@ -58,10 +60,14 @@ export async function chatRoutes(fastify: FastifyInstance) {
     },
     (request, reply: FastifyReply) => {
       // 设置流式响应头
+      // 获取原始流并处理每个事件
+      const originalStream = streamWorkflowGenerator(request.body);
       reply
         .header('Content-Type', 'text/event-stream')
         .header('Cache-Control', 'no-cache')
-        .send(ReadableStream.from(recordingStreamWrapper(request.body)));
+        .send(
+          ReadableStream.from(isDevelopment ? recordingStreamWrapper(request.body, originalStream) : originalStream)
+        );
     }
   );
 }
@@ -69,7 +75,10 @@ export async function chatRoutes(fastify: FastifyInstance) {
 /**
  * 录制流包装器 - 统一处理录制逻辑
  */
-async function* recordingStreamWrapper(requestBody: ChatRequest): AsyncGenerator<string, void, unknown> {
+async function* recordingStreamWrapper(
+  requestBody: ChatRequest,
+  originalStream: AsyncGenerator<string, void, unknown>
+): AsyncGenerator<string, void, unknown> {
   // 开始录制
   const threadId = requestBody.thread_id || generateId();
   const recordingSession = replayRecorder.startRecording(threadId);
@@ -81,21 +90,15 @@ async function* recordingStreamWrapper(requestBody: ChatRequest): AsyncGenerator
       await recordingSession.recordUserMessage(lastUserMessage.content as string, generateId());
     }
 
-    // 获取原始流并处理每个事件
-    const originalStream = streamWorkflowGenerator({
-      ...requestBody,
-      thread_id: threadId
-    });
-
     for await (const sseEvent of originalStream) {
       // 直接录制原始 SSE 事件字符串
       await recordingSession.recordRawSSEEvent(sseEvent);
-      
+
       // 转发事件给客户端
       yield sseEvent;
     }
   } catch (error) {
-    console.error('Error in recording stream wrapper:', error);
+    logger.error(threadId, 'Error in recording stream wrapper:', error);
     throw error;
   } finally {
     // 完成后停止录制
@@ -132,29 +135,52 @@ async function* streamWorkflowGenerator({
 
   if (!auto_accepted_plan && interrupt_feedback) {
     // 恢复从上一次中断的地方继续
-    input = new Command({ resume: `[${interrupt_feedback}] ${messages[messages.length - 1]?.content ?? ''}` });
+    const content = { resume: `[${interrupt_feedback}] ${messages[messages.length - 1]?.content ?? ''}` };
+    logger.info(thread_id, 'Interrupt feedback:', content);
+    input = new Command(content);
   }
 
+  const configurable = {
+    thread_id,
+    resources: resources || [],
+    max_plan_iterations: max_plan_iterations || 3,
+    max_step_num: max_step_num || 5,
+    max_search_results: max_search_results || 10,
+    mcp_settings: mcp_settings || {}
+  };
+  logger.info(thread_id, 'Start stream workflow', {
+    configurable,
+    input
+  });
   // 执行图工作流并处理流式输出
   const stream = await graph.streamEvents(input, {
-    configurable: {
-      thread_id,
-      resources: resources || [],
-      max_plan_iterations: max_plan_iterations || 3,
-      max_step_num: max_step_num || 5,
-      max_search_results: max_search_results || 10,
-      mcp_settings: mcp_settings || {}
-    },
+    configurable,
     version: 'v2',
     subgraphs: true
   });
 
+  /**
+   * 创建 Server-Sent Events 格式的事件数据
+   */
+  function makeEvent(eventType: string, data: any): string {
+    // 移除空的 content 字段（与 Python 版本保持一致）
+    const cleanData = { ...data } as any;
+    if (cleanData.content === '') {
+      delete cleanData.content;
+    }
+    const event = `event: ${eventType}\ndata: ${JSON.stringify(cleanData)}\n\n`;
+
+    // logger.info(thread_id, 'SSE event:', event);
+    // 格式化为 SSE 事件，使用 ensure_ascii=false 以支持非 ASCII 字符
+    return event;
+  }
+
   // 处理流式事件
   for await (const args of stream) {
     // const [_, type, info] = args;
-    const { event, data, metadata, name, tags, run_id } = args;
+    const { event, data, metadata, name } = args;
     const agent = metadata.checkpoint_ns?.split(':')?.[0] ?? name;
-    console.log(event);
+    // logger.info(thread_id, 'Stream workflow event:', args);
 
     if (event === 'on_chain_stream') {
       const { chunk } = data;
@@ -210,7 +236,6 @@ async function* streamWorkflowGenerator({
         finish_reason: 'stop'
       });
     } else if (event === 'on_tool_start') {
-      console.log(args);
     } else if (event === 'on_tool_end') {
       const chunk = data.output;
       if (chunk.tool_call_id) {
@@ -225,19 +250,4 @@ async function* streamWorkflowGenerator({
       }
     }
   }
-}
-
-/**
- * 创建 Server-Sent Events 格式的事件数据
- * 对应 Python 版本的 _make_event 函数
- */
-function makeEvent(eventType: string, data: any): string {
-  // 移除空的 content 字段（与 Python 版本保持一致）
-  const cleanData = { ...data } as any;
-  if (cleanData.content === '') {
-    delete cleanData.content;
-  }
-
-  // 格式化为 SSE 事件，使用 ensure_ascii=false 以支持非 ASCII 字符
-  return `event: ${eventType}\ndata: ${JSON.stringify(cleanData)}\n\n`;
 }
