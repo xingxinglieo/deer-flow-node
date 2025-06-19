@@ -83,8 +83,6 @@ export const useStore = create<State>()(
   }))
 );
 
-console.log(useStore);
-
 export async function sendMessage(
   content?: string,
   {

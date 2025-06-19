@@ -79,7 +79,6 @@ function ActivityListItem({ messageId }: { messageId: string }) {
   const message = useMessage(messageId);
   if (message) {
     if (!message.isStreaming && message.tool_calls?.length) {
-      console.log(message, message.tool_calls);
       for (const toolCall of message.tool_calls) {
         if (toolCall.name === 'web_search_tool') {
           return (
@@ -138,7 +137,6 @@ type SearchResult =
     };
 
 function WebSearchToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
-  console.log('WebSearchToolCall', toolCall);
   const searching = useMemo(() => {
     return toolCall.result === undefined;
   }, [toolCall.result]);

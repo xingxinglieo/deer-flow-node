@@ -4,6 +4,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import nunjucks from 'nunjucks';
 import { BaseMessage } from '@langchain/core/messages';
 import { Configuration } from '../config/configuration';
 import { State, Message } from '../graph/types';
@@ -12,33 +13,12 @@ import dayjs from 'dayjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Simple template engine for replacing variables in templates
- * Supports Jinja2-like syntax: {{ variable_name }}
- */
-class TemplateEngine {
-  /**
-   * Render template with given variables
-   */
-  static render(template: string, variables: Record<string, any>): string {
-    let result = template;
-
-    // Replace all {{ variable }} patterns
-    for (const [key, value] of Object.entries(variables)) {
-      const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
-      const replacement = value !== null && value !== undefined ? String(value) : '';
-      result = result.replace(pattern, replacement);
-    }
-
-    return result;
-  }
-}
 
 /**
- * Load and return a prompt template
+ * 加载并返回一个 prompt 模板
  *
- * @param promptName - Name of the prompt template file (without .md extension)
- * @returns The template string
+ * @param promptName - prompt 模板文件名（不含 .md 扩展名）
+ * @returns 模板字符串
  */
 export function getPromptTemplate(promptName: string): string {
   try {
@@ -55,17 +35,12 @@ export function getPromptTemplate(promptName: string): string {
 }
 
 /**
- * Apply template variables to a prompt template and return formatted messages
- * This function replicates the Python version's functionality:
- * 1. Add current time to state variables
- * 2. Merge configurable variables if provided
- * 3. Render template with variables
- * 4. Return system message + existing messages
+ * 应用模板变量到 prompt 模板并返回格式化的消息
  *
- * @param promptName - Name of the prompt template to use
- * @param state - Current agent state containing variables to substitute
- * @param configurable - Optional configuration object
- * @returns List of messages with the system prompt as the first message
+ * @param promptName - 要使用的 prompt 模板名称
+ * @param state - 包含要替换变量的当前代理状态
+ * @param configurable - 可选的配置对象
+ * @returns 包含系统 prompt 作为第一条消息的消息列表
  */
 export function applyPromptTemplate(
   promptName: string,
@@ -73,25 +48,27 @@ export function applyPromptTemplate(
   configurable?: Configuration
 ): (Message | BaseMessage)[] {
   try {
-    // Convert state to variables for template rendering
+    // 将状态转换为模板渲染的变量
     const stateVars: Record<string, any> = {
       CURRENT_TIME: dayjs().format('YYYY-MM-DD HH:mm:ss'),
       ...state
     };
 
-    // Add configurable variables if provided
+    // 如果提供了可配置变量，则添加它们
     if (configurable) {
       Object.assign(stateVars, configurable);
     }
 
-    // Load and render template
+    // 加载模板内容
     const template = getPromptTemplate(promptName);
-    const systemPrompt = TemplateEngine.render(template, stateVars);
+    
+    // 使用 Nunjucks 渲染模板
+    const systemPrompt = nunjucks.renderString(template, stateVars);
 
-    // Return system message + existing messages
+    // 返回系统消息 + 现有消息
     const messages: (Message | BaseMessage)[] = [{ role: 'system', content: systemPrompt }];
 
-    // Add existing messages from state, converting BaseMessage to simple format
+    // 从状态添加现有消息，将 BaseMessage 转换为简单格式
     if (state.messages && Array.isArray(state.messages)) {
       messages.push(...state.messages);
     }

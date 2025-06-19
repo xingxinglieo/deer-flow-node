@@ -46,19 +46,15 @@ export async function coordinatorNode(
       // 如果启用了背景调查，先进行搜索再进行规划
       goto = 'background_investigator';
     }
-    try {
-      for (const toolCall of response.tool_calls) {
-        if (toolCall.name !== 'handoff_to_planner') {
-          continue;
-        }
-        const toolLocale = toolCall.args?.locale;
-        if (toolLocale) {
-          locale = toolLocale;
-          break;
-        }
+    for (const toolCall of response.tool_calls) {
+      if (toolCall.name !== 'handoff_to_planner') {
+        continue;
       }
-    } catch (e) {
-      console.error(`Error processing tool calls: ${e}`);
+      const toolLocale = toolCall.args?.locale;
+      if (toolLocale) {
+        locale = toolLocale;
+        break;
+      }
     }
   }
 

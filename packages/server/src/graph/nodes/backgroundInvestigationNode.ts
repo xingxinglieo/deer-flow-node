@@ -43,9 +43,7 @@ export async function backgroundInvestigationNode(state: State, config?: Runnabl
     logger.error(configurable.thread_id, 'Background investigation Node: tavily search error:', error);
   }
 
-  logger.info(configurable.thread_id, 'Background investigation Node: end, goto planner node anyway', {
-    backgroundInvestigationResults
-  });
+  logger.info(configurable.thread_id, 'Background investigation Node: end, goto planner node anyway');
   return new Command({
     update: {
       background_investigation_results: JSON.stringify(backgroundInvestigationResults)
