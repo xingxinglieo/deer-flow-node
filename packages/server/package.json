@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && tsc-alias && node fix-imports.js && cp -r src/prompts dist/",
+    "build": "rm -rf dist && mkdir dist && rm tsconfig.tsbuildinfo && tsc && tsc-alias && node fix-imports.js && cp -r src/prompts dist/",
     "dev": "dotenvx run -- tsx watch src/index.ts",
     "start": "dotenvx run -- node dist/index.js",
     "test": "jest",
@@ -32,7 +32,7 @@
     "@types/nunjucks": "^3.2.6",
     "@types/socket.io": "^3.0.2",
     "axios": "^1.9.0",
-    "danfojs-node": "^1.2.0",
+    "danfojs": "^1.2.0",
     "dayjs": "^1.11.13",
     "fastify": "^5.3.3",
     "fastify-plugin": "^5.0.1",

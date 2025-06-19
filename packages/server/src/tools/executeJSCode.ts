@@ -5,7 +5,7 @@ import { VM } from 'vm2';
 import lodash from 'lodash';
 import dayjs from 'dayjs';
 import axios from 'axios';
-import danfojs from 'danfojs-node';
+import * as danfojs from 'danfojs';
 import * as mathjs from 'mathjs';
 import yahooFinance from 'yahoo-finance2';
 
